@@ -1,10 +1,10 @@
 
-
+## fin-management app
 test/
 .eslintrc.js
 .prettierrc
 nest-cli.json
-
+.env
 
 # compiled output
 /dist
