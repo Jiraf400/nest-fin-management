@@ -7,7 +7,7 @@ import { User } from './user.model';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @Post()
+  @Post('register')
   async registerNewUser(@Req() req: Request, @Res() res: Response) {
     const { name, email, password } = req.body;
 
@@ -19,5 +19,16 @@ export class UsersController {
     return res.status(201).json({ status: 'OK', message: 'Successfully register new user', body: createdUser });
   }
 
-  //login
+  @Post('login')
+  async loginUser(@Req() req: Request, @Res() res: Response) {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ message: 'All fields must be filled.' });
+    }
+
+    const accessToken = await this.usersService.login(email, password);
+
+    res.status(200).json(accessToken);
+  }
 }
