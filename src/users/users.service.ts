@@ -2,6 +2,7 @@ import { HttpException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { User } from './user.model';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
@@ -17,6 +18,8 @@ export class UsersService {
       throw new HttpException('User already exists', 400);
     }
 
+    data.password = await bcrypt.hash(data.password, 8);
+
     console.log(`Create user ${data.email}`);
 
     return this.prisma.user.create({ data });
@@ -29,7 +32,9 @@ export class UsersService {
       throw new HttpException('User not exists', 400);
     }
 
-    if (password !== candidate.password) {
+    const match = await bcrypt.compare(password, candidate.password);
+
+    if (!match) {
       throw new HttpException('Failed to match credentials', 400);
     }
 
