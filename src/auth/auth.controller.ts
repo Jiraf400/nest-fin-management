@@ -1,10 +1,10 @@
 import { Controller, Post, Req, Res } from '@nestjs/common';
-import { UsersService } from './users.service';
+import { UsersService } from '../users/users.service';
 import { Response, Request } from 'express';
-import { User } from './user.model';
+import { User } from '../users/user.model';
 
 @Controller('auth')
-export class UsersController {
+export class AuthController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post('register')
