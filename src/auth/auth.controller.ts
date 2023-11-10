@@ -11,7 +11,7 @@ export class AuthController {
   async registerNewUser(@Req() req: Request, @Res() res: Response) {
     const { name, email, password } = req.body;
 
-    if (!name || !email || !password) {
+    if (!name || !email || !password || !isEmailValid(email)) {
       return res.status(400).json({ message: 'All fields must be filled.' });
     }
 
@@ -31,4 +31,10 @@ export class AuthController {
 
     res.status(200).json(accessToken);
   }
+}
+
+function isEmailValid(email: any) {
+  const expression: RegExp = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
+
+  return expression.test(email);
 }
