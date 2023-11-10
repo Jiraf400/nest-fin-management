@@ -7,9 +7,11 @@ import { environments } from 'eslint-plugin-prettier';
 import * as process from 'process';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthGuard } from '../auth/auth.guard';
+import { UsersController } from './users.controller';
 
 @Module({
   providers: [UsersService, PrismaService],
   exports: [UsersService],
+  controllers: [UsersController],
 })
 export class UsersModule {}

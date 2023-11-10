@@ -1,13 +1,13 @@
 import { Prisma } from '@prisma/client';
 
 export class User implements Prisma.UserCreateInput {
-  constructor(name: string, email: string, password: string) {
-    this.name = name;
+  constructor(email: string, name: string, password: string) {
     this.email = email;
+    this.name = name;
     this.password = password;
   }
 
-  name: string;
   email: string;
+  name: string;
   password: string;
 }

@@ -12,7 +12,7 @@ export class AuthService {
   ) {}
 
   async register(data: User) {
-    const duplicate = await this.userService.checkIsUserExists(data.email);
+    const duplicate = await this.userService.ifUserExistsReturnsHisBody(data.email);
 
     if (duplicate) {
       throw new HttpException('User already exists', 400);
@@ -26,7 +26,7 @@ export class AuthService {
   }
 
   async login(email: any, password: any) {
-    const candidate = await this.userService.checkIsUserExists(email);
+    const candidate = await this.userService.ifUserExistsReturnsHisBody(email);
 
     if (!candidate) {
       throw new HttpException('User not exists', 400);
