@@ -18,20 +18,21 @@ model User {
 }
 
 model Expense {
-  id          Int      @id @default(autoincrement())
-  amount      Decimal
+  expense_id  Int             @id @default(autoincrement())
+  user_id     Int
+  category_id Int
+  amount      Decimal         @db.Decimal(10, 2)
   description String
-  category    Category @relation(fields: [categoryId], references: [id])
-  user        User     @relation(fields: [userId], references: [id])
-  userId      Int
-  categoryId  Int
+  date        DateTime
+  user        User            @relation(fields: [user_id], references: [id])
+  category    ExpenseCategory @relation(fields: [category_id], references: [id])
 
   @@map("expenses")
 }
 
-model Category {
+model ExpenseCategory {
   id      Int       @id @default(autoincrement())
-  name    String
+  name    String    @unique
   Expense Expense[]
 
   @@map("categories")
