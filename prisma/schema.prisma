@@ -8,10 +8,31 @@ datasource db {
 }
 
 model User {
-  id       Int    @id @default(autoincrement())
+  id       Int       @id @default(autoincrement())
   name     String
-  email    String @unique
+  email    String    @unique
   password String
+  Expense  Expense[]
 
   @@map("users")
+}
+
+model Expense {
+  id          Int      @id @default(autoincrement())
+  amount      Decimal
+  description String
+  category    Category @relation(fields: [categoryId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
+  userId      Int
+  categoryId  Int
+
+  @@map("expenses")
+}
+
+model Category {
+  id      Int       @id @default(autoincrement())
+  name    String
+  Expense Expense[]
+
+  @@map("categories")
 }
