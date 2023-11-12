@@ -35,6 +35,20 @@ export class ExpensesService {
     return createdExpense;
   }
 
+  async deleteExpense(id: number) {
+    const candidate = await this.prisma.expense.findUnique({ where: { expense_id: id } });
+
+    if (!candidate) {
+      throw new HttpException('No objects found', 400);
+    }
+
+    const deleted = await this.prisma.expense.delete({ where: { expense_id: id } });
+
+    console.log(`Delete expense with id: ${deleted.expense_id}`);
+
+    return deleted;
+  }
+
   //delete expense
   //add new expense category
   //get expenses by month
