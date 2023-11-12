@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { CreateExpenseDTO } from './dto/expenses.dto';
 
@@ -10,7 +10,9 @@ export class ExpensesService {
     const category = await this.prisma.expenseCategory.findUnique({ where: { name: expenseDto.category } });
     const user = await this.prisma.user.findUnique({ where: { id: userFromRequest.sub } });
 
-    //TODO check if entities exists
+    if (!category || !user) {
+      throw new HttpException('Cannot find related tables with such parameters', 400);
+    }
 
     expenseDto.date = new Date();
 

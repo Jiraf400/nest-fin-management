@@ -1,9 +1,10 @@
-import { Body, Controller, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Post, Req, Res, UsePipes, ValidationPipe } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { ExpensesService } from './expenses.service';
 import { CreateExpenseDTO } from './dto/expenses.dto';
 
 @Controller('expenses')
+@UsePipes(ValidationPipe)
 export class ExpensesController {
   constructor(private expenseService: ExpensesService) {}
 
@@ -11,8 +12,9 @@ export class ExpensesController {
   async createExpense(@Req() req: Request, @Res() res: Response, @Body() expenseDto: CreateExpenseDTO) {
     const userFromRequest = req.body.user;
 
-    //TODO add field validation
-    //TODO add class-validator to expenseDTO
+    if (!userFromRequest || !expenseDto) {
+      return res.status(400).json({ message: 'All fields must be filled.' });
+    }
 
     const createdExpense = await this.expenseService.createNewExpense(userFromRequest, expenseDto);
 
