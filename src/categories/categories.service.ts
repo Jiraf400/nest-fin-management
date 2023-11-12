@@ -7,6 +7,8 @@ export class CategoriesService {
   constructor(private prisma: PrismaService) {}
 
   async addNewCategory(category: CategoryDTO) {
+    category.name = category.name.toUpperCase().trim();
+
     const candidate = await this.prisma.expenseCategory.findUnique({ where: { name: category.name } });
 
     if (candidate) {
@@ -23,5 +25,19 @@ export class CategoriesService {
     console.log(`create category ${createdCategory.id}`);
 
     return createdCategory;
+  }
+
+  async removeCategory(id: number) {
+    const candidate = await this.prisma.expenseCategory.findUnique({ where: { id: id } });
+
+    if (!candidate) {
+      throw new HttpException('No objects found', 400);
+    }
+
+    const removed = await this.prisma.expenseCategory.delete({ where: { id: id } });
+
+    console.log(`Remove category with id ${removed.id}`);
+
+    return removed;
   }
 }
