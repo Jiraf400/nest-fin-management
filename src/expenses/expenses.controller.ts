@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  Get,
   Param,
   ParseIntPipe,
   Post,
@@ -35,8 +36,19 @@ export class ExpensesController {
     return res.status(201).json({ status: 'OK', message: 'Successfully add new expense', body: createdExpense });
   }
 
+  @Get(':id')
+  async getSingleExpense(@Res() res: Response, @Param('id', ParseIntPipe) id: number) {
+    if (!id || !isFinite(id)) {
+      return res.status(400).json({ message: 'Id field required.' });
+    }
+
+    const receivedExpense = await this.expenseService.getSingleExpense(id);
+
+    return res.status(200).json({ status: 'OK', message: 'Success', body: receivedExpense });
+  }
+
   @Delete(':id')
-  async deleteExpense(@Req() req: Request, @Res() res: Response, @Param('id', ParseIntPipe) id: number) {
+  async deleteExpense(@Res() res: Response, @Param('id', ParseIntPipe) id: number) {
     if (!id || !isFinite(id)) {
       return res.status(400).json({ message: 'Id field required.' });
     }

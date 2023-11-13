@@ -1,6 +1,8 @@
 import { HttpException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { CreateExpenseDTO } from './dto/expenses.dto';
+import { Expense, ExpenseCategory, User } from '@prisma/client';
+import { ExpensesModel } from './expenses.model';
 
 @Injectable()
 export class ExpensesService {
@@ -11,7 +13,7 @@ export class ExpensesService {
     const user = await this.prisma.user.findUnique({ where: { id: userFromRequest.sub } });
 
     if (!category || !user) {
-      throw new HttpException('Cannot find related tables with such parameters', 400);
+      throw new HttpException('Cannot add expense with such parameters', 400);
     }
 
     expenseDto.date = new Date();
@@ -35,6 +37,19 @@ export class ExpensesService {
     return createdExpense;
   }
 
+  async getSingleExpense(id: number) {
+    const candidate = await this.prisma.expense.findUnique({ where: { expense_id: id } });
+
+    if (!candidate) {
+      throw new HttpException('No objects found', 400);
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { id: candidate.user_id } });
+    const category = await this.prisma.expenseCategory.findUnique({ where: { id: candidate.category_id } });
+
+    return mapExpenseToModel(candidate, user, category);
+  }
+
   async deleteExpense(id: number) {
     const candidate = await this.prisma.expense.findUnique({ where: { expense_id: id } });
 
@@ -49,8 +64,17 @@ export class ExpensesService {
     return deleted;
   }
 
-  //delete expense
-  //add new expense category
-  //get expenses by month
-  //set expense month limit
+  //TODO method to change expense category
+  //TODO method to get expenses by month
+  //TODO method to set expense month limit
+}
+
+function mapExpenseToModel(exp: Expense, u: User, cat: ExpenseCategory): ExpensesModel {
+  const model = new ExpensesModel();
+  model.user = u.name;
+  model.category = cat.name;
+  model.amount = exp.amount;
+  model.description = exp.description;
+  model.date = exp.date.toLocaleString();
+  return model;
 }
