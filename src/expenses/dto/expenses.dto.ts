@@ -1,4 +1,4 @@
-import { IsInt, IsNotEmpty, IsString, Length } from 'class-validator';
+import { IsInt, IsNotEmpty, Length } from 'class-validator';
 
 export class CreateExpenseDTO {
   @IsNotEmpty({ message: 'amount is required' })
@@ -12,4 +12,3 @@ export class CreateExpenseDTO {
   @Length(3, 15)
   category: string;
 }
-//
