@@ -71,12 +71,14 @@ export class ExpensesController {
   }
 
   @Delete(':id')
-  async deleteExpense(@Res() res: Response, @Param('id', ParseIntPipe) id: number) {
+  async deleteExpense(@Req() req: Request, @Res() res: Response, @Param('id', ParseIntPipe) id: number) {
+    const userFromRequest = req.body.user;
+
     if (!id || !isFinite(id)) {
       return res.status(400).json({ message: 'Id field required.' });
     }
 
-    const deletedExpense = await this.expenseService.deleteExpense(id);
+    const deletedExpense = await this.expenseService.deleteExpense(id, userFromRequest.sub);
 
     return res.status(200).json({ status: 'OK', message: `Expense removed with id: ${deletedExpense.expense_id}` });
   }

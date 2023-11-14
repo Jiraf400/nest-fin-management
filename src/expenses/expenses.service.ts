@@ -54,11 +54,15 @@ export class ExpensesService {
     return mapExpenseToModel(candidate, user, category);
   }
 
-  async deleteExpense(id: number) {
+  async deleteExpense(id: number, user_id: number) {
     const candidate = await this.prisma.expense.findUnique({ where: { expense_id: id } });
 
     if (!candidate) {
       throw new HttpException('No objects found', 400);
+    }
+
+    if (candidate.user_id !== user_id) {
+      throw new HttpException('Access not allowed', 401);
     }
 
     const deleted = await this.prisma.expense.delete({ where: { expense_id: id } });
