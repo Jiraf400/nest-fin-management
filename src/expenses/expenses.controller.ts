@@ -39,12 +39,14 @@ export class ExpensesController {
   }
 
   @Get(':id')
-  async getSingleExpense(@Res() res: Response, @Param('id', ParseIntPipe) id: number) {
+  async getSingleExpense(@Req() req: Request, @Res() res: Response, @Param('id', ParseIntPipe) id: number) {
+    const userFromRequest = req.body.user;
+
     if (!id || !isFinite(id)) {
       return res.status(400).json({ message: 'Id field required.' });
     }
 
-    const receivedExpense = await this.expenseService.getSingleExpense(id);
+    const receivedExpense = await this.expenseService.getSingleExpense(id, userFromRequest.sub);
 
     return res.status(200).json({ status: 'OK', message: 'Success', body: receivedExpense });
   }

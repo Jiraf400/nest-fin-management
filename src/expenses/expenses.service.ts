@@ -37,11 +37,15 @@ export class ExpensesService {
     return createdExpense;
   }
 
-  async getSingleExpense(id: number) {
+  async getSingleExpense(id: number, user_id: number) {
     const candidate = await this.prisma.expense.findUnique({ where: { expense_id: id } });
 
     if (!candidate) {
       throw new HttpException('No objects found', 400);
+    }
+
+    if (candidate.user_id !== user_id) {
+      throw new HttpException('Access not allowed', 401);
     }
 
     const user = await this.prisma.user.findUnique({ where: { id: candidate.user_id } });
