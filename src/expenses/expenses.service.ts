@@ -64,7 +64,32 @@ export class ExpensesService {
     return deleted;
   }
 
-  //TODO method to change expense category
+  async changeExpenseCategory(category: string, expense_id: number, user_id: number) {
+    const candidate = await this.prisma.expense.findUnique({ where: { expense_id: expense_id } });
+    const candidateCategory = await this.prisma.expenseCategory.findUnique({ where: { name: category } });
+
+    if (!candidate) {
+      throw new HttpException('No objects found', 400);
+    }
+
+    if (!candidateCategory) {
+      throw new HttpException('No categories found. Please create new category', 400);
+    }
+
+    if (candidate.user_id !== user_id) {
+      throw new HttpException('Access not allowed', 401);
+    }
+
+    const changedExpense = await this.prisma.expense.update({
+      where: { expense_id: expense_id },
+      data: { category_id: candidateCategory.id },
+    });
+
+    console.log(`Expense category change for expense ${changedExpense.expense_id}`);
+
+    return changedExpense;
+  }
+
   //TODO method to get expenses by month
   //TODO method to set expense month limit
 }

@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
   Req,
   Res,
@@ -16,6 +17,7 @@ import { Request, Response } from 'express';
 import { ExpensesService } from './expenses.service';
 import { CreateExpenseDTO } from './dto/expenses.dto';
 import { AuthGuard } from '../auth/auth.guard';
+import { CategoryDTO } from '../categories/dto/category.dto';
 
 @Controller('expenses')
 @UsePipes(ValidationPipe)
@@ -45,6 +47,25 @@ export class ExpensesController {
     const receivedExpense = await this.expenseService.getSingleExpense(id);
 
     return res.status(200).json({ status: 'OK', message: 'Success', body: receivedExpense });
+  }
+
+  @Patch(':id')
+  async changeExpenseCategory(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Body() category: CategoryDTO,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    const userFromRequest = req.body.user;
+    category.name = category.name.toUpperCase().trim();
+
+    if (!id || !category) {
+      return res.status(400).json({ message: 'All fields must be filled.' });
+    }
+
+    const changedExpense = await this.expenseService.changeExpenseCategory(category.name, id, userFromRequest.sub);
+
+    return res.status(200).json({ status: 'OK', message: `Expense changed with id: ${changedExpense.expense_id}` });
   }
 
   @Delete(':id')
