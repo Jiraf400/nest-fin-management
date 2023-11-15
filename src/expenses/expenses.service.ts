@@ -2,7 +2,7 @@ import { HttpException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { CreateExpenseDTO } from './dto/expenses.dto';
 import { Expense, ExpenseCategory, User } from '@prisma/client';
-import { ExpensesModel } from './expenses.model';
+import { GetExpenseModel } from './expenses.model';
 
 @Injectable()
 export class ExpensesService {
@@ -51,7 +51,7 @@ export class ExpensesService {
     const user = await this.prisma.user.findUnique({ where: { id: candidate.user_id } });
     const category = await this.prisma.expenseCategory.findUnique({ where: { id: candidate.category_id } });
 
-    return mapExpenseToModel(candidate, user, category);
+    return mapExpenseToGetModel(candidate, user, category);
   }
 
   async deleteExpense(id: number, user_id: number) {
@@ -98,12 +98,36 @@ export class ExpensesService {
     return changedExpense;
   }
 
-  //TODO method to get expenses by month
+  async getExpensesByDay(user_id: number) {
+    const date = new Date();
+
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const candidates = await this.prisma.expense.findMany({
+      where: {
+        user_id: user_id,
+        date: {
+          lte: endOfDay.toISOString(),
+          gte: startOfDay.toISOString(),
+        },
+      },
+    });
+
+    console.log(`candidates length: ${candidates.length}`);
+
+    return candidates;
+  }
+
+  //TODO method to get expenses by week, month
   //TODO method to set expense month limit
 }
 
-function mapExpenseToModel(exp: Expense, u: User, cat: ExpenseCategory): ExpensesModel {
-  const model = new ExpensesModel();
+function mapExpenseToGetModel(exp: Expense, u: User, cat: ExpenseCategory): GetExpenseModel {
+  const model = new GetExpenseModel();
   model.user = u.name;
   model.category = cat.name;
   model.amount = exp.amount;

@@ -38,6 +38,15 @@ export class ExpensesController {
     return res.status(201).json({ status: 'OK', message: 'Successfully add new expense', body: createdExpense });
   }
 
+  @Get('by-day')
+  async getExpenseListByDay(@Req() req: Request, @Res() res: Response) {
+    const userFromRequest = req.body.user;
+
+    const expenseList = await this.expenseService.getExpensesByDay(userFromRequest.sub);
+
+    return res.status(200).json({ status: 'OK', result: expenseList });
+  }
+
   @Get(':id')
   async getSingleExpense(@Req() req: Request, @Res() res: Response, @Param('id', ParseIntPipe) id: number) {
     const userFromRequest = req.body.user;
