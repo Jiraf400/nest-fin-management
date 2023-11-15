@@ -1,6 +1,6 @@
 import { Decimal } from 'prisma/prisma-client/runtime';
 
-export class ExpensesModel {
+export class GetExpenseModel {
   user: string;
   category: string;
   description: string;
