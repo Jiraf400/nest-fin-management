@@ -1,12 +1,14 @@
 import { HttpException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { CreateExpenseDTO } from './dto/expenses.dto';
-import { Expense, ExpenseCategory, User } from '@prisma/client';
-import { GetExpenseModel } from './expenses.model';
+import { ExpenseMapper } from './mappers/expense.mapper';
 
 @Injectable()
 export class ExpensesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private mapper: ExpenseMapper,
+  ) {}
 
   async createNewExpense(userFromRequest: any, expenseDto: CreateExpenseDTO) {
     const category = await this.prisma.expenseCategory.findUnique({ where: { name: expenseDto.category } });
@@ -51,7 +53,7 @@ export class ExpensesService {
     const user = await this.prisma.user.findUnique({ where: { id: candidate.user_id } });
     const category = await this.prisma.expenseCategory.findUnique({ where: { id: candidate.category_id } });
 
-    return mapExpenseToGetModel(candidate, user, category);
+    return this.mapper.mapExpenseToGetModel(candidate, user, category);
   }
 
   async deleteExpense(id: number, user_id: number) {
@@ -99,17 +101,13 @@ export class ExpensesService {
   }
 
   async getExpensesByDay(user_id: number) {
-    const date = new Date();
+    const user = await this.prisma.user.findUnique({ where: { id: user_id } });
 
-    const startOfDay = new Date(date);
-    startOfDay.setHours(0, 0, 0, 0);
-
-    const endOfDay = new Date(date);
-    endOfDay.setHours(23, 59, 59, 999);
+    const { startOfDay, endOfDay } = this.getStartAndEndOfDay();
 
     const candidates = await this.prisma.expense.findMany({
       where: {
-        user_id: user_id,
+        user_id: user.id,
         date: {
           lte: endOfDay.toISOString(),
           gte: startOfDay.toISOString(),
@@ -117,21 +115,24 @@ export class ExpensesService {
       },
     });
 
-    console.log(`candidates length: ${candidates.length}`);
+    const { formatted, total } = await this.mapper.mapExpenseListToModel(candidates, user);
 
-    return candidates;
+    return {
+      total,
+      expenseList: formatted,
+    };
   }
 
   //TODO method to get expenses by week, month
   //TODO method to set expense month limit
-}
 
-function mapExpenseToGetModel(exp: Expense, u: User, cat: ExpenseCategory): GetExpenseModel {
-  const model = new GetExpenseModel();
-  model.user = u.name;
-  model.category = cat.name;
-  model.amount = exp.amount;
-  model.description = exp.description;
-  model.date = exp.date.toLocaleString();
-  return model;
+  private getStartAndEndOfDay() {
+    const date = new Date();
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    return { startOfDay, endOfDay };
+  }
 }

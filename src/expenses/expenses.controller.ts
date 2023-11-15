@@ -44,7 +44,7 @@ export class ExpensesController {
 
     const expenseList = await this.expenseService.getExpensesByDay(userFromRequest.sub);
 
-    return res.status(200).json({ status: 'OK', result: expenseList });
+    return res.status(200).json(expenseList);
   }
 
   @Get(':id')
