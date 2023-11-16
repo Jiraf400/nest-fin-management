@@ -38,29 +38,12 @@ export class ExpensesController {
     return res.status(201).json({ status: 'OK', message: 'Successfully add new expense', body: createdExpense });
   }
 
-  @Get('by-day')
-  async getExpenseListByDay(@Req() req: Request, @Res() res: Response) {
+  @Get('find-by/:timeRange')
+  async getExpenseListByDay(@Req() req: Request, @Res() res: Response, @Param('timeRange') timeRange: string) {
     const userFromRequest = req.body.user;
+    timeRange = timeRange.toUpperCase();
 
-    const expenseList = await this.expenseService.getExpensesByDay(userFromRequest.sub);
-
-    return res.status(200).json(expenseList);
-  }
-
-  @Get('by-week')
-  async getExpenseListByWeek(@Req() req: Request, @Res() res: Response) {
-    const userFromRequest = req.body.user;
-
-    const expenseList = await this.expenseService.getExpensesByWeek(userFromRequest.sub);
-
-    return res.status(200).json(expenseList);
-  }
-
-  @Get('by-month')
-  async getExpenseListByMonth(@Req() req: Request, @Res() res: Response) {
-    const userFromRequest = req.body.user;
-
-    const expenseList = await this.expenseService.getExpensesByMonth(userFromRequest.sub);
+    const expenseList = await this.expenseService.getExpensesByTimeRange(userFromRequest.sub, timeRange);
 
     return res.status(200).json(expenseList);
   }

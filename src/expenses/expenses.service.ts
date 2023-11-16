@@ -2,6 +2,7 @@ import { HttpException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { CreateExpenseDTO } from './dto/expenses.dto';
 import { ExpenseMapper } from './mappers/expense.mapper';
+import { TimeRangeEnum } from './enums/timeRange.enum';
 
 @Injectable()
 export class ExpensesService {
@@ -102,22 +103,28 @@ export class ExpensesService {
     return changedExpense;
   }
 
-  async getExpensesByDay(user_id: number) {
-    const user = await this.prisma.user.findUnique({ where: { id: user_id } });
+  getExpensesByTimeRange(user_id: number, timeRange: string) {
+    const { startOfTime, endOfTime } = this.getTimeRangeStartAndEnd(timeRange);
 
-    const { startOfDay, endOfDay } = this.getStartAndEndOfDay();
+    return this.findExpenseListByTimeRange(user_id, startOfTime, endOfTime);
+  }
+
+  async findExpenseListByTimeRange(user_id: number, startTime: Date, endTime: Date) {
+    const user = await this.prisma.user.findUnique({ where: { id: user_id } });
 
     const candidates = await this.prisma.expense.findMany({
       where: {
         user_id: user.id,
         date: {
-          lte: endOfDay.toISOString(),
-          gte: startOfDay.toISOString(),
+          gte: startTime.toISOString(),
+          lte: endTime.toISOString(),
         },
       },
     });
 
     const { formatted, total } = await this.mapper.mapExpenseListToModel(candidates, user);
+
+    console.log(`${candidates.length} expenses found by time range ${startTime} : ${endTime}`);
 
     return {
       total,
@@ -125,83 +132,24 @@ export class ExpensesService {
     };
   }
 
-  async getExpensesByWeek(user_id: number) {
-    const user = await this.prisma.user.findUnique({ where: { id: user_id } });
-
-    const { startOfWeek, endOfWeek } = this.getStartAndEndOfWeek();
-    console.log(`startOfWeek: ${startOfWeek}`);
-    console.log(`endOfWeek: ${endOfWeek}`);
-
-    const candidates = await this.prisma.expense.findMany({
-      where: {
-        user_id: user.id,
-        date: {
-          lte: endOfWeek.toISOString(),
-          gte: startOfWeek.toISOString(),
-        },
-      },
-    });
-
-    const { formatted, total } = await this.mapper.mapExpenseListToModel(candidates, user);
-
-    return {
-      total,
-      expenseList: formatted,
-    };
-  }
-
-  async getExpensesByMonth(user_id: number) {
-    const user = await this.prisma.user.findUnique({ where: { id: user_id } });
-
-    const { startOfMonth, endOfMonth } = this.getStartAndEndOfMonth();
-    console.log(`startOfMonth: ${startOfMonth}`);
-    console.log(`endOfMonth: ${endOfMonth}`);
-
-    const candidates = await this.prisma.expense.findMany({
-      where: {
-        user_id: user.id,
-        date: {
-          lte: endOfMonth.toISOString(),
-          gte: startOfMonth.toISOString(),
-        },
-      },
-    });
-
-    const { formatted, total } = await this.mapper.mapExpenseListToModel(candidates, user);
-
-    return {
-      total,
-      expenseList: formatted,
-    };
-  }
-
-  private getStartAndEndOfDay() {
+  private getTimeRangeStartAndEnd(timeRange: string) {
     const date = new Date();
-    const startOfDay = new Date(date);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(date);
-    endOfDay.setHours(23, 59, 59, 999);
+    const startOfTime: Date = new Date();
+    const endOfTime: Date = new Date();
 
-    return { startOfDay, endOfDay };
-  }
+    if (timeRange === TimeRangeEnum.DAY.toString()) {
+      startOfTime.setHours(0, 0, 0, 0);
+      endOfTime.setHours(23, 59, 59, 999);
+    } else if (timeRange === TimeRangeEnum.WEEK.toString()) {
+      startOfTime.setDate(date.getDate() - 7);
+      endOfTime.setHours(23, 59, 59, 999);
+    } else if (timeRange === TimeRangeEnum.MONTH.toString()) {
+      startOfTime.setDate(date.getDate() - 30);
+      endOfTime.setHours(23, 59, 59, 999);
+    } else {
+      throw new HttpException('Parameters allowed: day, week, month', 400);
+    }
 
-  private getStartAndEndOfWeek() {
-    const date = new Date();
-    const startOfWeek = new Date(date);
-    startOfWeek.setDate(date.getDate() - 7);
-    const endOfWeek = new Date(date);
-    endOfWeek.setHours(23, 59, 59, 999);
-
-    return { startOfWeek, endOfWeek };
-  }
-
-  private getStartAndEndOfMonth() {
-    const date = new Date();
-    const startOfMonth = new Date(date);
-    startOfMonth.setDate(date.getDate() - 30);
-    const endOfMonth = new Date(date);
-    endOfMonth.setHours(23, 59, 59, 999);
-
-    return { startOfMonth, endOfMonth };
+    return { startOfTime, endOfTime };
   }
 }
