@@ -47,6 +47,24 @@ export class ExpensesController {
     return res.status(200).json(expenseList);
   }
 
+  @Get('by-week')
+  async getExpenseListByWeek(@Req() req: Request, @Res() res: Response) {
+    const userFromRequest = req.body.user;
+
+    const expenseList = await this.expenseService.getExpensesByWeek(userFromRequest.sub);
+
+    return res.status(200).json(expenseList);
+  }
+
+  @Get('by-month')
+  async getExpenseListByMonth(@Req() req: Request, @Res() res: Response) {
+    const userFromRequest = req.body.user;
+
+    const expenseList = await this.expenseService.getExpensesByMonth(userFromRequest.sub);
+
+    return res.status(200).json(expenseList);
+  }
+
   @Get(':id')
   async getSingleExpense(@Req() req: Request, @Res() res: Response, @Param('id', ParseIntPipe) id: number) {
     const userFromRequest = req.body.user;
