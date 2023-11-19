@@ -13,6 +13,7 @@ model User {
   email    String    @unique
   password String
   Expense  Expense[]
+  Income   Income[]
 
   @@map("users")
 }
@@ -35,5 +36,25 @@ model ExpenseCategory {
   name    String    @unique
   Expense Expense[]
 
-  @@map("categories")
+  @@map("expense_categories")
+}
+
+model Income {
+  id          Int            @id @default(autoincrement())
+  date        DateTime
+  amount      Decimal        @db.Decimal(10, 2)
+  user_id     Int
+  category_id Int
+  user        User           @relation(fields: [user_id], references: [id])
+  category    IncomeCategory @relation(fields: [category_id], references: [id])
+
+  @@map("incomes")
+}
+
+model IncomeCategory {
+  id     Int      @id @default(autoincrement())
+  name   String   @unique
+  Income Income[]
+
+  @@map("income_categories")
 }
