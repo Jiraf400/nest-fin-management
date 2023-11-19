@@ -43,6 +43,6 @@ export class ExpenseCategoriesController {
 
     const removedCategory = await this.categoryService.removeCategory(id);
 
-    return res.status(200).json({ status: 'OK', message: `Expense removed with id: ${removedCategory.id}` });
+    return res.status(200).json({ status: 'OK', message: `Expense category removed with id: ${removedCategory.id}` });
   }
 }
