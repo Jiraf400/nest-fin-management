@@ -17,7 +17,7 @@ import { Request, Response } from 'express';
 import { ExpensesService } from './expenses.service';
 import { CreateExpenseDTO } from './dto/expenses.dto';
 import { AuthGuard } from '../auth/auth.guard';
-import { CategoryDTO } from '../expense-categories/dto/category.dto';
+import { ExpenseCategoryDto } from '../expense-categories/dto/expense-category.dto';
 
 @Controller('expenses')
 @UsePipes(ValidationPipe)
@@ -65,7 +65,7 @@ export class ExpensesController {
   async changeExpenseCategory(
     @Req() req: Request,
     @Res() res: Response,
-    @Body() category: CategoryDTO,
+    @Body() category: ExpenseCategoryDto,
     @Param('id', ParseIntPipe) id: number,
   ) {
     const userFromRequest = req.body.user;

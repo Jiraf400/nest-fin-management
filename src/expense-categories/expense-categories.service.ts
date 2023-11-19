@@ -1,12 +1,12 @@
 import { HttpException, Injectable } from '@nestjs/common';
-import { CategoryDTO } from './dto/category.dto';
+import { ExpenseCategoryDto } from './dto/expense-category.dto';
 import { PrismaService } from '../prisma.service';
 
 @Injectable()
-export class CategoriesService {
+export class ExpenseCategoriesService {
   constructor(private prisma: PrismaService) {}
 
-  async addNewCategory(category: CategoryDTO) {
+  async addNewCategory(category: ExpenseCategoryDto) {
     category.name = category.name.toUpperCase().trim();
 
     const candidate = await this.prisma.expenseCategory.findUnique({ where: { name: category.name } });

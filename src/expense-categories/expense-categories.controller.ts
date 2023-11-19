@@ -12,18 +12,18 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { AuthGuard } from '../auth/auth.guard';
-import { CategoriesService } from './categories.service';
-import { CategoryDTO } from './dto/category.dto';
+import { ExpenseCategoriesService } from './expense-categories.service';
+import { ExpenseCategoryDto } from './dto/expense-category.dto';
 import { Request, Response } from 'express';
 
 @UsePipes(ValidationPipe)
 @UseGuards(AuthGuard)
-@Controller('categories')
-export class CategoriesController {
-  constructor(private categoryService: CategoriesService) {}
+@Controller('expenses/categories')
+export class ExpenseCategoriesController {
+  constructor(private categoryService: ExpenseCategoriesService) {}
 
   @Post()
-  async createNewCategory(@Req() req: Request, @Res() res: Response, @Body() categoryDTO: CategoryDTO) {
+  async createNewCategory(@Req() req: Request, @Res() res: Response, @Body() categoryDTO: ExpenseCategoryDto) {
     if (!categoryDTO) {
       return res.status(400).json({ message: 'Category not provided' });
     }
