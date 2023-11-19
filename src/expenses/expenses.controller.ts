@@ -17,7 +17,7 @@ import { Request, Response } from 'express';
 import { ExpensesService } from './expenses.service';
 import { CreateExpenseDTO } from './dto/expenses.dto';
 import { AuthGuard } from '../auth/auth.guard';
-import { CategoryDTO } from '../categories/dto/category.dto';
+import { CategoryDTO } from '../expense-categories/dto/category.dto';
 
 @Controller('expenses')
 @UsePipes(ValidationPipe)
