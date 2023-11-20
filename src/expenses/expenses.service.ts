@@ -2,7 +2,8 @@ import { HttpException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { CreateExpenseDTO } from './dto/expenses.dto';
 import { ExpenseMapper } from './mappers/expense.mapper';
-import { TimeRangeEnum } from './enums/timeRange.enum';
+import { TimeRangeEnum } from '../utils/timerange/timeRange.enum';
+import { getTimeRangeStartAndEnd } from '../utils/timerange/timeRange.func';
 
 @Injectable()
 export class ExpensesService {
@@ -104,7 +105,7 @@ export class ExpensesService {
   }
 
   getExpensesByTimeRange(user_id: number, timeRange: string) {
-    const { startOfTime, endOfTime } = this.getTimeRangeStartAndEnd(timeRange);
+    const { startOfTime, endOfTime } = getTimeRangeStartAndEnd(timeRange);
 
     return this.findExpenseListByTimeRange(user_id, startOfTime, endOfTime);
   }
@@ -130,26 +131,5 @@ export class ExpensesService {
       total,
       expenseList: formatted,
     };
-  }
-
-  private getTimeRangeStartAndEnd(timeRange: string) {
-    const date = new Date();
-    const startOfTime: Date = new Date();
-    const endOfTime: Date = new Date();
-
-    if (timeRange === TimeRangeEnum.DAY.toString()) {
-      startOfTime.setHours(0, 0, 0, 0);
-      endOfTime.setHours(23, 59, 59, 999);
-    } else if (timeRange === TimeRangeEnum.WEEK.toString()) {
-      startOfTime.setDate(date.getDate() - 7);
-      endOfTime.setHours(23, 59, 59, 999);
-    } else if (timeRange === TimeRangeEnum.MONTH.toString()) {
-      startOfTime.setDate(date.getDate() - 30);
-      endOfTime.setHours(23, 59, 59, 999);
-    } else {
-      throw new HttpException('Parameters allowed: day, week, month', 400);
-    }
-
-    return { startOfTime, endOfTime };
   }
 }
