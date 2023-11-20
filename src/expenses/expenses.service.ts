@@ -2,7 +2,6 @@ import { HttpException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { CreateExpenseDTO } from './dto/expenses.dto';
 import { ExpenseMapper } from './mappers/expense.mapper';
-import { TimeRangeEnum } from '../utils/timerange/timeRange.enum';
 import { getTimeRangeStartAndEnd } from '../utils/timerange/timeRange.func';
 
 @Injectable()
@@ -12,8 +11,6 @@ export class ExpensesService {
     private mapper: ExpenseMapper,
   ) {}
 
-  //TODO method to set expense month limit
-
   async createNewExpense(userFromRequest: any, expenseDto: CreateExpenseDTO) {
     const category = await this.prisma.expenseCategory.findUnique({ where: { name: expenseDto.category } });
     const user = await this.prisma.user.findUnique({ where: { id: userFromRequest.sub } });
@@ -21,8 +18,6 @@ export class ExpensesService {
     if (!category || !user) {
       throw new HttpException('Cannot add expense with such parameters', 400);
     }
-
-    expenseDto.date = new Date();
 
     const createdExpense = await this.prisma.expense.create({
       data: {
@@ -34,7 +29,7 @@ export class ExpensesService {
         user: {
           connect: { id: user.id },
         },
-        date: expenseDto.date,
+        date: new Date(),
       },
     });
 
