@@ -12,7 +12,7 @@ export class IncomeCategoriesService {
     const candidate = await this.prisma.incomeCategory.findUnique({ where: { name: category.name } });
 
     if (candidate) {
-      throw new HttpException('Expense category already exists', 400);
+      throw new HttpException('Income category already exists', 400);
     }
 
     console.log(`NAME: ${category.name}`);
