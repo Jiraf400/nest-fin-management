@@ -8,12 +8,14 @@ datasource db {
 }
 
 model User {
-  id       Int       @id @default(autoincrement())
-  name     String
-  email    String    @unique
-  password String
-  Expense  Expense[]
-  Income   Income[]
+  id              Int               @id @default(autoincrement())
+  name            String
+  email           String            @unique
+  password        String
+  Expense         Expense[]
+  Income          Income[]
+  ExpenseCategory ExpenseCategory[]
+  IncomeCategory  IncomeCategory[]
 
   @@map("users")
 }
@@ -33,7 +35,9 @@ model Expense {
 
 model ExpenseCategory {
   id      Int       @id @default(autoincrement())
-  name    String    @unique
+  name    String
+  user_id Int
+  user    User      @relation(fields: [user_id], references: [id])
   Expense Expense[]
 
   @@map("expense_categories")
@@ -52,9 +56,11 @@ model Income {
 }
 
 model IncomeCategory {
-  id     Int      @id @default(autoincrement())
-  name   String   @unique
-  Income Income[]
+  id      Int      @id @default(autoincrement())
+  name    String
+  user_id Int
+  user    User     @relation(fields: [user_id], references: [id])
+  Income  Income[]
 
   @@map("income_categories")
 }
