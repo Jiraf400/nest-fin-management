@@ -8,59 +8,45 @@ datasource db {
 }
 
 model User {
-  id              Int               @id @default(autoincrement())
-  name            String
-  email           String            @unique
-  password        String
-  Expense         Expense[]
-  Income          Income[]
-  ExpenseCategory ExpenseCategory[]
-  IncomeCategory  IncomeCategory[]
+  id                  Int                   @id @default(autoincrement())
+  name                String
+  email               String                @unique
+  password            String
+  Transaction         Transaction[]
+  TransactionCategory TransactionCategory[]
 
   @@map("users")
 }
 
-model Expense {
-  expense_id  Int             @id @default(autoincrement())
+model Transaction {
+  id          Int                 @id @default(autoincrement())
   user_id     Int
   category_id Int
-  amount      Decimal         @db.Decimal(10, 2)
+  type_id     Int
+  amount      Decimal             @db.Decimal(10, 2)
   description String
   date        DateTime
-  user        User            @relation(fields: [user_id], references: [id])
-  category    ExpenseCategory @relation(fields: [category_id], references: [id])
+  user        User                @relation(fields: [user_id], references: [id])
+  category    TransactionCategory @relation(fields: [category_id], references: [id])
+  type        TransactionType     @relation(fields: [type_id], references: [id])
 
-  @@map("expenses")
+  @@map("transactions")
 }
 
-model ExpenseCategory {
-  id      Int       @id @default(autoincrement())
-  name    String
-  user_id Int
-  user    User      @relation(fields: [user_id], references: [id])
-  Expense Expense[]
-
-  @@map("expense_categories")
-}
-
-model Income {
-  id          Int            @id @default(autoincrement())
-  date        DateTime
-  amount      Decimal        @db.Decimal(10, 2)
+model TransactionCategory {
+  id          Int           @id @default(autoincrement())
+  name        String
   user_id     Int
-  category_id Int
-  user        User           @relation(fields: [user_id], references: [id])
-  category    IncomeCategory @relation(fields: [category_id], references: [id])
+  user        User          @relation(fields: [user_id], references: [id])
+  Transaction Transaction[]
 
-  @@map("incomes")
+  @@map("transaction_categories")
 }
 
-model IncomeCategory {
-  id      Int      @id @default(autoincrement())
-  name    String
-  user_id Int
-  user    User     @relation(fields: [user_id], references: [id])
-  Income  Income[]
+model TransactionType {
+  id          Int           @id @default(autoincrement())
+  name        String        @unique
+  Transaction Transaction[]
 
-  @@map("income_categories")
+  @@map("transaction_types")
 }
