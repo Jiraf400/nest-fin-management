@@ -14,6 +14,7 @@ model User {
   password            String
   Transaction         Transaction[]
   TransactionCategory TransactionCategory[]
+  MonthlyLimit        MonthlyLimit[]
 
   @@map("users")
 }
@@ -49,4 +50,16 @@ model TransactionType {
   Transaction Transaction[]
 
   @@map("transaction_types")
+}
+
+model MonthlyLimit {
+  id             Int  @id @default(autoincrement())
+  month          Int
+  year           Int
+  limit_amound   Int
+  total_expenses Int
+  user_id        Int
+  user           User @relation(fields: [user_id], references: [id])
+
+  @@map("montly_limits")
 }
