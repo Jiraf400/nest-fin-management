@@ -69,16 +69,33 @@ export class MonthlyLimitsService {
     return deleteLimit;
   }
 
-  async addExpenseToLimit(expense_amount: number, user_id: number) {
+  async addExpenseToLimitTotal(expense_amount: number, user_id: number) {
     const candidate = await this.prisma.monthlyLimit.findUnique({ where: { user_id: user_id } });
 
     if (!candidate) {
-      throw new HttpException('Monthly limit object not found', 400); //TODO
+      return;
     }
 
     const changeLimit = await this.prisma.monthlyLimit.update({
       where: { user_id: user_id },
       data: { total_expenses: candidate.total_expenses + expense_amount },
+    });
+
+    console.log(`change limit by adding expense amount ${expense_amount}`);
+
+    return changeLimit;
+  }
+
+  async removeExpenseFromLimitTotal(expense_amount: number, user_id: number) {
+    const candidate = await this.prisma.monthlyLimit.findUnique({ where: { user_id: user_id } });
+
+    if (!candidate) {
+      return;
+    }
+
+    const changeLimit = await this.prisma.monthlyLimit.update({
+      where: { user_id: user_id },
+      data: { total_expenses: candidate.total_expenses - expense_amount },
     });
 
     console.log(`change limit by adding expense amount ${expense_amount}`);

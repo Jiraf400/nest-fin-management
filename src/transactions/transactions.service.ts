@@ -4,6 +4,7 @@ import { TransactionsDto } from './dto/transactions.dto';
 import { getTimeRangeStartAndEnd } from '../utils/timerange/timeRange.func';
 import { TransactionCategoriesService } from '../transaction-categories/transaction-categories.service';
 import { TransactionsMapper } from './mappers/transactions.mapper';
+import { MonthlyLimitsService } from '../monthly-limits/monthly-limits.service';
 
 @Injectable()
 export class TransactionsService {
@@ -11,17 +12,15 @@ export class TransactionsService {
     private prisma: PrismaService,
     private mapper: TransactionsMapper,
     private categoriesService: TransactionCategoriesService,
+    private mLimitService: MonthlyLimitsService,
   ) {}
 
-  async addNewTransaction(userFromRequest: any, trDto: TransactionsDto) {
-    const categoryCandidateId = await this.categoriesService.ifCategoryExistsReturnsItsId(
-      trDto.category,
-      userFromRequest.sub,
-    );
+  async addNewTransaction(user_id: number, trDto: TransactionsDto) {
+    const categoryCandidateId = await this.categoriesService.ifCategoryExistsReturnsItsId(trDto.category, user_id);
 
     const trType = this.validateTranscationTypeOrThrow(trDto.type);
 
-    const user = await this.prisma.user.findUnique({ where: { id: userFromRequest.sub } });
+    const user = await this.prisma.user.findUnique({ where: { id: user_id } });
 
     if (!user || categoryCandidateId === 0) {
       throw new HttpException('Cannot add transaction with such parameters', 400);
@@ -43,6 +42,8 @@ export class TransactionsService {
         date: new Date(),
       },
     });
+
+    await this.mLimitService.addExpenseToLimitTotal(addedTransaction.amount, user_id);
 
     console.log(`create transaction ${addedTransaction.id}`);
 
@@ -81,6 +82,8 @@ export class TransactionsService {
     }
 
     const deleted = await this.prisma.transaction.delete({ where: { id: id } });
+
+    await this.mLimitService.removeExpenseFromLimitTotal(deleted.amount, user_id);
 
     console.log(`Delete transaction with id: ${deleted.id}`);
 

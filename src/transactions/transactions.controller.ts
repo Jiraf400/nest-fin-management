@@ -33,7 +33,7 @@ export class TransactionsController {
       return res.status(400).json({ message: 'All fields must be filled.' });
     }
 
-    const created = await this.transactionService.addNewTransaction(userFromRequest, trDto);
+    const created = await this.transactionService.addNewTransaction(userFromRequest.sub, trDto);
 
     return res.status(201).json({ status: 'OK', message: 'Successfully add new transaction', body: created });
   }
