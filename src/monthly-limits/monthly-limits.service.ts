@@ -6,8 +6,8 @@ import { PrismaService } from '../prisma.service';
 export class MonthlyLimitsService {
   constructor(private prisma: PrismaService) {}
 
-  async addNewMonthLimit(dto: MonthlyLimitDTO, user: any) {
-    const candidate = await this.prisma.monthlyLimit.findUnique({ where: { user_id: user.sub } });
+  async addNewMonthLimit(dto: MonthlyLimitDTO, user_id: number) {
+    const candidate = await this.prisma.monthlyLimit.findUnique({ where: { user_id: user_id } });
 
     if (candidate) {
       throw new HttpException('Monthly limit has already been set. Able only to delete or update amount', 400);
@@ -16,7 +16,7 @@ export class MonthlyLimitsService {
     const setLimit = await this.prisma.monthlyLimit.create({
       data: {
         user: {
-          connect: { id: user.sub },
+          connect: { id: user_id },
         },
         month: new Date().getMonth() + 1,
         year: new Date().getFullYear(),
@@ -30,11 +30,50 @@ export class MonthlyLimitsService {
     return setLimit;
   }
 
+  async changeLimitAmount(limit_amount: number, user_id: number, limit_id: number) {
+    const candidate = await this.prisma.monthlyLimit.findUnique({ where: { id: limit_id } });
+
+    if (!candidate) {
+      throw new HttpException('Monthly limit object not found', 400);
+    }
+
+    if (candidate.user_id !== user_id) {
+      throw new HttpException('Access not allowed', 401);
+    }
+
+    const changeLimit = await this.prisma.monthlyLimit.update({
+      where: { id: limit_id },
+      data: { limit_amount: limit_amount },
+    });
+
+    console.log(`change limit by adding limit amount ${limit_amount}`);
+
+    return changeLimit;
+  }
+
+  async deleteExpenseLimit(limit_id: number, user_id: number) {
+    const candidate = await this.prisma.monthlyLimit.findUnique({ where: { id: limit_id } });
+
+    if (!candidate) {
+      throw new HttpException('No objects found', 400);
+    }
+
+    if (candidate.user_id !== user_id) {
+      throw new HttpException('Access not allowed', 401);
+    }
+
+    const deleteLimit = await this.prisma.monthlyLimit.delete({ where: { user_id: user_id } });
+
+    console.log(`Delete monthly limit with id: ${deleteLimit.id}`);
+
+    return deleteLimit;
+  }
+
   async addExpenseToLimit(expense_amount: number, user_id: number) {
     const candidate = await this.prisma.monthlyLimit.findUnique({ where: { user_id: user_id } });
 
     if (!candidate) {
-      throw new HttpException('Monthly limit object not found', 400);
+      throw new HttpException('Monthly limit object not found', 400); //TODO
     }
 
     const changeLimit = await this.prisma.monthlyLimit.update({
@@ -47,20 +86,19 @@ export class MonthlyLimitsService {
     return changeLimit;
   }
 
-  async deleteExpenseLimit(user: any) {
-    const candidate = await this.prisma.monthlyLimit.findUnique({ where: { user_id: user.sub } });
+  async isLimitReached(user_id: number) {
+    const candidate = await this.prisma.monthlyLimit.findUnique({ where: { user_id: user_id } });
 
     if (!candidate) {
-      throw new HttpException('No objects found', 400);
+      throw new HttpException('No objects found', 400); //TODO
     }
 
-    const deleteLimit = await this.prisma.monthlyLimit.delete({ where: { user_id: user.sub } });
+    let result: boolean = false;
 
-    console.log(`Delete monthly limit with id: ${deleteLimit.id}`);
+    if (candidate.total_expenses > candidate.limit_amount) {
+      result = true;
+    }
 
-    return deleteLimit;
+    return result;
   }
-
-  //TODO method to change limit amount
-  //TODO method to check if limit reached
 }
