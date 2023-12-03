@@ -24,7 +24,7 @@ model Transaction {
   user_id     Int
   category_id Int
   type_id     Int
-  amount      Decimal             @db.Decimal(10, 2)
+  amount      Int
   description String
   date        DateTime
   user        User                @relation(fields: [user_id], references: [id])
