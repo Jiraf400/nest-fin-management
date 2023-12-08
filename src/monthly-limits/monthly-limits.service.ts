@@ -1,10 +1,15 @@
 import { HttpException, Injectable } from '@nestjs/common';
 import { MonthlyLimitDTO } from './dto/mlimit.dto';
 import { PrismaService } from '../prisma.service';
+import { User } from '@prisma/client';
+import { MonthlyLimitsNotifications } from './monthly-limits.notifications';
 
 @Injectable()
 export class MonthlyLimitsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: MonthlyLimitsNotifications,
+  ) {}
 
   async addNewMonthLimit(dto: MonthlyLimitDTO, user_id: number) {
     const candidate = await this.prisma.monthlyLimit.findUnique({ where: { user_id: user_id } });
@@ -103,8 +108,8 @@ export class MonthlyLimitsService {
     return changeLimit;
   }
 
-  async ifLimitReachedSendAnEmail(user_id: number) {
-    const candidate = await this.prisma.monthlyLimit.findUnique({ where: { user_id: user_id } });
+  async ifLimitReachedSendAnEmail(user: User) {
+    const candidate = await this.prisma.monthlyLimit.findUnique({ where: { user_id: user.id } });
 
     if (!candidate) {
       return;
@@ -114,7 +119,7 @@ export class MonthlyLimitsService {
 
     if (candidate.total_expenses > candidate.limit_amount) {
       result = true;
-      //TODO sending email logic here
+      this.notifications.sendLimitReachedEmail(user.name, user.email);
     }
 
     return result;
