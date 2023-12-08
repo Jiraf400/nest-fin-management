@@ -103,17 +103,18 @@ export class MonthlyLimitsService {
     return changeLimit;
   }
 
-  async isLimitReached(user_id: number) {
+  async ifLimitReachedSendAnEmail(user_id: number) {
     const candidate = await this.prisma.monthlyLimit.findUnique({ where: { user_id: user_id } });
 
     if (!candidate) {
-      throw new HttpException('No objects found', 400); //TODO
+      return;
     }
 
     let result: boolean = false;
 
     if (candidate.total_expenses > candidate.limit_amount) {
       result = true;
+      //TODO sending email logic here
     }
 
     return result;

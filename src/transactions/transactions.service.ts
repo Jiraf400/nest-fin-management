@@ -45,6 +45,8 @@ export class TransactionsService {
 
     await this.mLimitService.addExpenseToLimitTotal(addedTransaction.amount, user_id);
 
+    await this.mLimitService.ifLimitReachedSendAnEmail(user_id);
+
     console.log(`create transaction ${addedTransaction.id}`);
 
     return addedTransaction;
