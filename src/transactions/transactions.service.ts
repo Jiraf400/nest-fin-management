@@ -1,5 +1,5 @@
 import { HttpException, Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { TransactionsDto } from './dto/transactions.dto';
 import { getTimeRangeStartAndEnd } from '../utils/timerange/timeRange.func';
 import { TransactionCategoriesService } from '../transaction-categories/transaction-categories.service';
