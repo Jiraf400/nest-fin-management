@@ -1,18 +1,18 @@
-import { UsersService } from '../users/users.service';
-import { User } from '../users/user.model';
 import { HttpException, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { PrismaService } from '../prisma.service';
+import { User } from './user/user.model';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private userService: UsersService,
     private jwt: JwtService,
+    private prisma: PrismaService,
   ) {}
 
   async register(data: User) {
-    const duplicate = await this.userService.checkIsUserExists(data.email);
+    const duplicate = await this.prisma.user.findUnique({ where: { email: data.email } });
 
     if (duplicate) {
       throw new HttpException('User already exists', 400);
@@ -20,13 +20,15 @@ export class AuthService {
 
     data.password = await bcrypt.hash(data.password, 8);
 
-    console.log(`Create user ${data.email}`);
+    const created = await this.prisma.user.create({ data });
 
-    return this.userService.createNewUser(data);
+    console.log(`Create user ${created.id}`);
+
+    return created;
   }
 
   async login(email: any, password: any) {
-    const candidate = await this.userService.checkIsUserExists(email);
+    const candidate = await this.prisma.user.findUnique({ where: { email: email } });
 
     if (!candidate) {
       throw new HttpException('User not exists', 400);
