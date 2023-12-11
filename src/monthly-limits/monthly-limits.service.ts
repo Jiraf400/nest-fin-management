@@ -1,6 +1,6 @@
 import { HttpException, Injectable } from '@nestjs/common';
 import { MonthlyLimitDTO } from './dto/mlimit.dto';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../utils/prisma/prisma.service';
 import { User } from '@prisma/client';
 import { MonthlyLimitsNotifications } from './monthly-limits.notifications';
 
