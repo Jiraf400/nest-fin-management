@@ -1,8 +1,9 @@
 import { HttpException, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../utils/prisma/prisma.service';
 import { User } from './user/user.model';
+import * as process from 'process';
 
 @Injectable()
 export class AuthService {
@@ -44,7 +45,7 @@ export class AuthService {
 
     console.log(`Create token for user ${email}`);
     return {
-      access_token: await this.jwt.signAsync(payload),
+      access_token: await this.jwt.signAsync(payload, { secret: `${process.env.JWT_SECRET}` }),
     };
   }
 }
