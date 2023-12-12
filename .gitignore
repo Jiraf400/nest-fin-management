@@ -5,6 +5,7 @@ test/
 .prettierrc
 nest-cli.json
 .env
+.env.test
 
 # compiled output
 /dist
