@@ -1,0 +1,20 @@
+version: '3'
+services:
+  dev-db:
+    container_name: nest_fin_dev
+    image: postgres:12
+    ports:
+      - "5436:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: finance_management
+  test-db:
+    container_name: nest_fin_test
+    image: postgres:12
+    ports:
+      - "5435:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: finance_management
