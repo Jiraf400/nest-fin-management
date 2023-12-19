@@ -2,6 +2,7 @@ import { Controller, Post, Req, Res } from '@nestjs/common';
 import { Response, Request } from 'express';
 import { User } from './user/user.model';
 import { AuthService } from './auth.service';
+import { isEmailValid } from './auth.service';
 
 @Controller('auth')
 export class AuthController {
@@ -16,6 +17,7 @@ export class AuthController {
     }
 
     const createdUser = await this.authService.register(new User(name, email, password));
+
     return res.status(201).json({ status: 'OK', message: 'Successfully register new user', body: createdUser });
   }
 
@@ -31,10 +33,4 @@ export class AuthController {
 
     res.status(200).json(accessToken);
   }
-}
-
-function isEmailValid(email: any) {
-  const expression: RegExp = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
-
-  return expression.test(email);
 }
