@@ -1,8 +1,8 @@
 import { HttpException, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../utils/prisma/prisma.service';
 import { User } from './user/user.model';
+import * as bcrypt from 'bcryptjs';
 import * as process from 'process';
 
 @Injectable()
@@ -41,13 +41,19 @@ export class AuthService {
       throw new HttpException('Failed to match credentials', 400);
     }
 
-    const payload = { email: email, sub: candidate.id };
-
     console.log(`Create token for user ${email}`);
 
+    const accessToken = await this.generateJwtToken(email, candidate.id);
+
     return {
-      access_token: await this.jwt.signAsync(payload, { secret: `${process.env.JWT_SECRET}` }),
+      access_token: accessToken,
     };
+  }
+
+  async generateJwtToken(email: string, candidate_id: number) {
+    const payload = { email: email, sub: candidate_id };
+
+    return await this.jwt.signAsync(payload, { secret: `${process.env.JWT_SECRET}` });
   }
 }
 
