@@ -1,10 +1,18 @@
 version: '3'
 services:
+  management-app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: "postgresql://postgres:postgres@nest_fin_dev:5432/finance_management?schema=public&connect_timeout=300"
+    depends_on:
+    - dev-db
   dev-db:
     container_name: nest_fin_dev
     image: postgres:12
     ports:
-      - "5436:5432"
+      - "5433:5432"
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -13,7 +21,10 @@ services:
     container_name: nest_fin_test
     image: postgres:12
     ports:
-      - "5435:5432"
+      - "5431:5431"
+    command: -p 5431
+    expose:
+      - "5431"
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
