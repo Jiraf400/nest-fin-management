@@ -14,7 +14,7 @@ export class TransactionsMapper {
     const formatted: GetTransactionDTO[] = [];
 
     for (const tr of candidates) {
-      total += tr.amount.toNumber();
+      total += tr.amount;
       type = tr.type;
 
       const category = await this.prisma.transactionCategory.findUnique({ where: { id: tr.category_id } });
