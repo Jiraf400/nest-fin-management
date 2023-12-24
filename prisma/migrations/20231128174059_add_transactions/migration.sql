@@ -29,6 +29,10 @@ CREATE TABLE "transaction_types" (
     CONSTRAINT "transaction_types_pkey" PRIMARY KEY ("id")
 );
 
+-- Insert
+INSERT INTO transaction_types (id, name) values (1, 'EXPENSE');
+INSERT INTO transaction_types (id, name) values (2, 'INCOME');
+
 -- AddForeignKey
 ALTER TABLE "transactions" ADD CONSTRAINT "transactions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
