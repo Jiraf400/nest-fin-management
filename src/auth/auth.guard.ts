@@ -1,4 +1,4 @@
-import { CanActivate, ExecutionContext, HttpException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { CanActivate, ExecutionContext, HttpException, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import * as process from 'process';
@@ -15,12 +15,12 @@ export class AuthGuard implements CanActivate {
     }
     try {
       const payload = await this.jwtService.verifyAsync(token, {
-        secret: process.env.JWT_SECRET,
+        secret: `${process.env.JWT_SECRET}`,
       });
 
       request.body.user = payload;
-    } catch {
-      throw new UnauthorizedException();
+    } catch (e: any) {
+      throw new HttpException('Failed to recognize token signature', 401);
     }
     return true;
   }
