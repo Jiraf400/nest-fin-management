@@ -2,9 +2,13 @@ version: '3'
 services:
   management-app:
     build: .
+    stdin_open: true
+    tty: true
     ports:
       - "3000:3000"
     environment:
+      EMAIL_FROM: '${EMAIL_FROM}'
+      EMAIL_APP_PASSWORD: '${EMAIL_APP_PASSWORD}'
       DATABASE_URL: "postgresql://postgres:postgres@nest_fin_dev:5432/finance_management?schema=public&connect_timeout=300"
     depends_on:
     - dev-db
