@@ -6,26 +6,35 @@ import { PrismaService } from '../utils/prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 
 describe('AuthController', () => {
-  let controller: AuthController;
+  let authController: AuthController;
   let authService: AuthService;
   let prisma: PrismaService;
-  let jwt: JwtService;
+  const jwtToken = 'jwtToken';
 
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({
+    const module = await Test.createTestingModule({
       controllers: [AuthController],
-      providers: [PrismaService, JwtService],
+      providers: [
+        {
+          provide: AuthService,
+          useValue: {
+            register: jest.fn(),
+            login: jest.fn(),
+          },
+        },
+        PrismaService,
+        JwtService,
+      ],
     }).compile();
 
-    jwt = moduleRef.get(JwtService);
-    prisma = moduleRef.get(PrismaService);
-    authService = new AuthService(jwt, prisma);
-    controller = new AuthController(authService);
+    authService = module.get<AuthService>(AuthService);
+    authController = module.get<AuthController>(AuthController);
+    prisma = module.get<PrismaService>(PrismaService);
     await prisma.cleanDatabase(prisma.user);
   });
 
   it('should be defined', () => {
-    expect(controller).toBeDefined();
+    expect(authController).toBeDefined();
   });
 
   describe('registerNewUser', () => {
@@ -42,7 +51,7 @@ describe('AuthController', () => {
       mockResponse.json = jest.fn();
       mockResponse.status = jest.fn(() => mockResponse).mockReturnThis();
 
-      await controller.registerNewUser(mockRequest, mockResponse);
+      await authController.registerNewUser(mockRequest, mockResponse);
 
       expect(mockResponse.status).toHaveBeenCalledWith(201);
       expect(mockResponse.json).toHaveBeenCalledWith(
@@ -64,7 +73,7 @@ describe('AuthController', () => {
       mockResponse.json = jest.fn();
       mockResponse.status = jest.fn(() => mockResponse).mockReturnThis();
 
-      await controller.registerNewUser(mockRequest, mockResponse);
+      await authController.registerNewUser(mockRequest, mockResponse);
 
       expect(mockResponse.status).toHaveBeenCalledWith(400);
       expect(mockResponse.json).toHaveBeenCalledWith(
@@ -76,7 +85,11 @@ describe('AuthController', () => {
   });
 
   describe('loginUser()', () => {
-    it('should return a successful login response', async () => {
+    it('should return access token', async () => {
+      jest.spyOn(authService, 'login').mockImplementation(async () => {
+        return { access_token: jwtToken };
+      });
+
       const mockRequest = {
         body: {
           email: 'bobik1@gmail.com',
@@ -86,12 +99,13 @@ describe('AuthController', () => {
 
       const mockResponse = {} as unknown as Response;
       mockResponse.json = jest.fn();
-      mockResponse.status = jest.fn(() => mockResponse).mockReturnThis();
+      mockResponse.status = jest.fn(() => mockResponse);
 
-      await controller.loginUser(mockRequest, mockResponse);
+      await authController.loginUser(mockRequest, mockResponse);
 
+      expect(authService.login).toHaveBeenCalled();
       expect(mockResponse.status).toHaveBeenCalledWith(200);
-      //TODO write test to check if response body contain "access_token" string
+      expect(mockResponse.json).toHaveBeenCalledWith({ access_token: jwtToken });
     });
     it('should return 400 on checking if all fields filled', async () => {
       const mockRequest = {
@@ -104,7 +118,7 @@ describe('AuthController', () => {
       mockResponse.json = jest.fn();
       mockResponse.status = jest.fn(() => mockResponse).mockReturnThis();
 
-      await controller.loginUser(mockRequest, mockResponse);
+      await authController.loginUser(mockRequest, mockResponse);
 
       expect(mockResponse.status).toHaveBeenCalledWith(400);
       expect(mockResponse.json).toHaveBeenCalledWith(
