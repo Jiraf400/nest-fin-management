@@ -20,7 +20,7 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "test:migrate": "cross-env NODE_ENV=test prisma migrate dev",
+    "test:migrate": "cross-env DATABASE_URL=postgresql://postgres:postgres@localhost:5431/finance_management?schema=public prisma migrate dev",
     "test:int": "npm run test:migrate && jest -i --no-cache --watch --config jest-int.json"
   },
   "dependencies": {
