@@ -20,7 +20,7 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "test:migrate": "cross-env DATABASE_URL=postgresql://postgres:postgres@localhost:5431/finance_management?schema=public prisma migrate dev",
+    "test:migrate": "cross-env NODE_ENV=test DATABASE_URL=postgresql://postgres:postgres@localhost:5431/finance_management?schema=public prisma migrate dev",
     "test:int": "npm run test:migrate && jest -i --no-cache --watch --config jest-int.json"
   },
   "dependencies": {
@@ -58,6 +58,7 @@
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-prettier": "^5.0.0",
     "jest": "^29.5.0",
+    "jest-mock-extended": "^3.0.5",
     "prettier": "^3.0.0",
     "prisma": "^4.15.0",
     "source-map-support": "^0.5.21",
