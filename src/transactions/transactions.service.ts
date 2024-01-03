@@ -5,6 +5,7 @@ import { getTimeRangeStartAndEnd } from '../utils/timerange/timeRange.func';
 import { TransactionCategoriesService } from '../transaction-categories/transaction-categories.service';
 import { TransactionsMapper } from './mappers/transactions.mapper';
 import { MonthlyLimitsService } from '../monthly-limits/monthly-limits.service';
+import { TransactionCategory, TransactionType, User } from '@prisma/client';
 
 @Injectable()
 export class TransactionsService {
@@ -63,11 +64,13 @@ export class TransactionsService {
       throw new HttpException('Access not allowed', 401);
     }
 
-    const type = await this.prisma.transactionType.findUnique({ where: { id: candidate.type_id } });
+    const type = <TransactionType>await this.prisma.transactionType.findUnique({ where: { id: candidate.type_id } });
 
-    const user = await this.prisma.user.findUnique({ where: { id: candidate.user_id } });
+    const user = <User>await this.prisma.user.findUnique({ where: { id: candidate.user_id } });
 
-    const category = await this.prisma.transactionCategory.findUnique({ where: { id: candidate.category_id } });
+    const category = <TransactionCategory>(
+      await this.prisma.transactionCategory.findUnique({ where: { id: candidate.category_id } })
+    );
 
     return this.mapper.mapTransactionToModel(candidate, user, category, type.name);
   }
@@ -122,7 +125,7 @@ export class TransactionsService {
   async getTransactionsByTimeRange(user_id: number, timeRange: string) {
     const { startOfTime, endOfTime } = getTimeRangeStartAndEnd(timeRange);
 
-    const user = await this.prisma.user.findUnique({ where: { id: user_id } });
+    const user = <User>await this.prisma.user.findUnique({ where: { id: user_id } });
 
     const candidates = await this.prisma.transaction.findMany({
       where: {

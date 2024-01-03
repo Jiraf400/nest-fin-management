@@ -5,7 +5,7 @@ import { Injectable } from '@nestjs/common';
 @Injectable()
 export class MonthlyLimitsNotifications {
   sendLimitReachedEmail(userName: string, userEmail: string) {
-    const transporter = this.createTransport(process.env.EMAIL_FROM, process.env.EMAIL_APP_PASSWORD);
+    const transporter = this.createTransport(`${process.env.EMAIL_FROM}`, `${process.env.EMAIL_APP_PASSWORD}`);
 
     const mailOptions = this.generateLimitReachedMailOptions(userName, userEmail);
 

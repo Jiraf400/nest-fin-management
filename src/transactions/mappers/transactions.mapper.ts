@@ -17,7 +17,9 @@ export class TransactionsMapper {
       total += tr.amount;
       type = tr.type;
 
-      const category = await this.prisma.transactionCategory.findUnique({ where: { id: tr.category_id } });
+      const category = <TransactionCategory>(
+        await this.prisma.transactionCategory.findUnique({ where: { id: tr.category_id } })
+      );
       const unit = this.mapTransactionToModel(tr, user, category, type);
 
       formatted.push(unit);
