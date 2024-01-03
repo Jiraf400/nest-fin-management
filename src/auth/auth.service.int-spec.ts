@@ -2,7 +2,6 @@ import { AuthService, isEmailValid } from './auth.service';
 import { Test } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
-import dotenv from 'dotenv';
 
 describe('AuthService', () => {
   let authService: AuthService;
@@ -16,7 +15,6 @@ describe('AuthService', () => {
     prisma = moduleRef.get(PrismaService);
     authService = moduleRef.get(AuthService);
     await prisma.cleanDatabase(prisma.user);
-    dotenv.config();
   });
 
   it('should be defined', () => {
