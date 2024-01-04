@@ -10,10 +10,19 @@ describe('TransactionCategoriesService', () => {
   let service: TransactionCategoriesService;
   let prisma: PrismaService;
   let authService: AuthService;
+  const prismaMock: any = {
+    transactionCategory: {
+      findMany: jest.fn(),
+    },
+  } as unknown as PrismaService;
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
-      providers: [TransactionCategoriesService, AuthService, PrismaService, JwtService],
+      providers: [TransactionCategoriesService, AuthService, JwtService, PrismaService],
     }).compile();
 
     prisma = moduleRef.get(PrismaService);
@@ -32,7 +41,7 @@ describe('TransactionCategoriesService', () => {
         name: 'testcat',
       };
 
-      jest.spyOn(service, 'ifCategoryExistsReturnsItsId').mockImplementation(async () => {
+      jest.spyOn(service, 'ifCategoryExistsReturnsItsId').mockImplementationOnce(async () => {
         return 0;
       });
 
@@ -56,7 +65,7 @@ describe('TransactionCategoriesService', () => {
     });
     it('should throw on category already exists', async () => {
       try {
-        jest.spyOn(service, 'ifCategoryExistsReturnsItsId').mockImplementation(async () => {
+        jest.spyOn(service, 'ifCategoryExistsReturnsItsId').mockImplementationOnce(async () => {
           return 1;
         });
 
@@ -80,7 +89,7 @@ describe('TransactionCategoriesService', () => {
 
   describe('removeCategory()', () => {
     it('should remove category', async () => {
-      jest.spyOn(service, 'ifCategoryExistsReturnsItsId').mockImplementation(async () => {
+      jest.spyOn(service, 'ifCategoryExistsReturnsItsId').mockImplementationOnce(async () => {
         return 0;
       });
 
@@ -159,39 +168,23 @@ describe('TransactionCategoriesService', () => {
 
   describe('ifCategoryExistsReturnsItsId()', () => {
     it('should return existing category id', async () => {
-      const categoryDTO: TransactionsCategoryDTO = {
-        name: 'NewCategory',
+      const exampleCategory = {
+        id: 99,
+        user_id: 100,
+        name: 'hello',
       };
 
-      const userDTOTemplate: User = {
-        name: 'John',
-        email: `john@mail.com + ${Math.random()}`,
-        password: 'pass124',
-      };
+      const trService = new TransactionCategoriesService(prismaMock);
 
-      const userFromService = await authService.register(userDTOTemplate);
+      const findManyMock = jest.spyOn(prismaMock.transactionCategory, 'findMany').mockResolvedValue([exampleCategory]);
 
-      const user = {
-        ...userFromService,
-        sub: userFromService.id,
-      };
+      const result = await trService.getCategoriesByUserId(123);
 
-      const createdCategory = await service.addNewCategory(categoryDTO, user);
-
-      const result = await service.ifCategoryExistsReturnsItsId(createdCategory.name, userFromService.id);
-
-      expect(result).toEqual(createdCategory.id);
+      expect(result).toEqual([exampleCategory]);
+      expect(findManyMock).toHaveBeenCalledWith({ where: { user_id: 123 } });
     });
     it('should return 0 if category not exists', async () => {
-      const userDTOTemplate: User = {
-        name: 'John',
-        email: `john@mail.com + ${Math.random()}`,
-        password: 'pass124',
-      };
-
-      const userFromService = await authService.register(userDTOTemplate);
-
-      const result = await service.ifCategoryExistsReturnsItsId('NOT_EXISTING_CATEGORY', userFromService.id);
+      const result = await service.ifCategoryExistsReturnsItsId('NOT_EXISTING_CATEGORY', 4);
 
       expect(result).toEqual(0);
     });
