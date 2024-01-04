@@ -50,16 +50,20 @@ export class TransactionCategoriesService {
   async ifCategoryExistsReturnsItsId(categoryName: string, user_id: number): Promise<number> {
     categoryName = categoryName.toUpperCase().trim();
 
-    const candidates = await this.prisma.transactionCategory.findMany({ where: { user_id: user_id } });
+    const categories = await this.getCategoriesByUserId(user_id);
 
     let candidateId = 0;
 
-    candidates.forEach(function (candidate) {
-      if (candidate.name == categoryName) {
-        candidateId = candidate.id;
+    categories.forEach(function (category) {
+      if (category.name == categoryName) {
+        candidateId = category.id;
       }
     });
 
     return candidateId;
+  }
+
+  getCategoriesByUserId(user_id: number) {
+    return this.prisma.transactionCategory.findMany({ where: { user_id: user_id } });
   }
 }
