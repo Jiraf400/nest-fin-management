@@ -9,22 +9,11 @@ describe('AuthController', () => {
   let authController: AuthController;
   let authService: AuthService;
   let prisma: PrismaService;
-  const jwtToken = 'jwtToken';
 
   beforeAll(async () => {
     const module = await Test.createTestingModule({
       controllers: [AuthController],
-      providers: [
-        {
-          provide: AuthService,
-          useValue: {
-            register: jest.fn(),
-            login: jest.fn(),
-          },
-        },
-        PrismaService,
-        JwtService,
-      ],
+      providers: [AuthService, PrismaService, JwtService],
     }).compile();
 
     authService = module.get<AuthService>(AuthService);
@@ -39,11 +28,20 @@ describe('AuthController', () => {
 
   describe('registerNewUser', () => {
     it('should return a successful register response', async () => {
+      const createdUser = {
+        id: 1,
+        name: 'John',
+        email: 'john@mail.com',
+        password: 'pass1234',
+      };
+
+      jest.spyOn(authService, 'register').mockResolvedValue(createdUser);
+
       const mockRequest = {
         body: {
-          name: 'bobik1',
-          email: 'bobik1@gmail.com',
-          password: 'abcd1234',
+          name: 'John',
+          email: 'john@mail.com',
+          password: 'pass1234',
         },
       } as Request;
 
@@ -54,10 +52,13 @@ describe('AuthController', () => {
       await authController.registerNewUser(mockRequest, mockResponse);
 
       expect(mockResponse.status).toHaveBeenCalledWith(201);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(201);
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
           status: 'OK',
           message: 'Successfully register new user',
+          body: createdUser,
         }),
       );
     });
@@ -86,6 +87,7 @@ describe('AuthController', () => {
 
   describe('loginUser()', () => {
     it('should return access token', async () => {
+      const jwtToken = 'jwtToken';
       jest.spyOn(authService, 'login').mockImplementation(async () => {
         return { access_token: jwtToken };
       });
