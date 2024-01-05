@@ -26,7 +26,7 @@ export class TransactionCategoriesController {
   async createNewCategory(@Req() req: Request, @Res() res: Response, @Body() categoryDTO: TransactionsCategoryDTO) {
     const userFromRequest = req.body.user;
 
-    if (!categoryDTO) {
+    if (!categoryDTO || categoryDTO.name.length <= 1) {
       return res.status(400).json({ message: 'Category not provided' });
     }
 
