@@ -115,13 +115,10 @@ export class MonthlyLimitsService {
       return;
     }
 
-    let result: boolean = false;
-
     if (candidate.total_expenses > candidate.limit_amount) {
-      result = true;
       this.notifications.sendLimitReachedEmail(user.name, user.email);
+    } else {
+      return;
     }
-
-    return result;
   }
 }
