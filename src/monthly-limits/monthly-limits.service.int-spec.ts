@@ -22,6 +22,7 @@ describe('MonthlyLimitsService', () => {
     service = moduleRef.get(MonthlyLimitsService);
     authService = moduleRef.get(AuthService);
     await prisma.cleanDatabase(prisma.monthlyLimit);
+    await prisma.cleanDatabase(prisma.user);
   });
 
   it('should be defined', () => {
@@ -30,8 +31,6 @@ describe('MonthlyLimitsService', () => {
 
   describe('addNewMonthLimit()', () => {
     it('should create new monthly limit object', async () => {
-      await prisma.cleanDatabase(prisma.user);
-
       const userObj: User = {
         name: 'John',
         email: 'john@mail.com',
