@@ -3,22 +3,14 @@ import { TransactionCategoriesService } from './transaction-categories.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { TransactionsCategoryDTO } from './dto/tr-category.dto';
 import { AuthService } from '../auth/auth.service';
-import { User } from '../auth/user/user.model';
 import { JwtService } from '@nestjs/jwt';
+import { User } from '../auth/user/user.model';
+import { User as PrismaUser } from '@prisma/client';
 
 describe('TransactionCategoriesService', () => {
   let service: TransactionCategoriesService;
   let prisma: PrismaService;
   let authService: AuthService;
-  const prismaMock: any = {
-    transactionCategory: {
-      findMany: jest.fn(),
-    },
-  } as unknown as PrismaService;
-
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({
@@ -28,6 +20,7 @@ describe('TransactionCategoriesService', () => {
     prisma = moduleRef.get(PrismaService);
     service = moduleRef.get(TransactionCategoriesService);
     authService = moduleRef.get(AuthService);
+    await prisma.cleanDatabase(prisma.user);
     await prisma.cleanDatabase(prisma.transactionCategory);
   });
 
@@ -38,150 +31,82 @@ describe('TransactionCategoriesService', () => {
   describe('addNewCategory()', () => {
     it('should create new category', async () => {
       const categoryDTO: TransactionsCategoryDTO = {
-        name: 'testcat',
+        name: 'test',
       };
-
-      jest.spyOn(service, 'ifCategoryExistsReturnsItsId').mockImplementationOnce(async () => {
-        return 0;
-      });
 
       const userDTOTemplate: User = {
         name: 'John',
-        email: `john@mail.com + ${Math.random()}`,
+        email: `john@mail.com`,
         password: 'pass124',
       };
 
-      const userFromService = await authService.register(userDTOTemplate);
+      const createdUser = await authService.register(userDTOTemplate);
 
-      const user = {
-        ...userFromService,
-        sub: userFromService.id,
-      };
+      const createdCategory = await service.addNewCategory(categoryDTO, createdUser.id);
 
-      const createdCategory = await service.addNewCategory(categoryDTO, user);
-
-      expect(createdCategory.name).toEqual('TESTCAT');
-      expect(createdCategory.user_id).toEqual(user.sub);
+      expect(createdCategory.name).toEqual('TEST');
+      expect(createdCategory.user_id).toEqual(createdUser.id);
     });
     it('should throw on category already exists', async () => {
       try {
-        jest.spyOn(service, 'ifCategoryExistsReturnsItsId').mockImplementationOnce(async () => {
-          return 1;
-        });
-
         const categoryDTO: TransactionsCategoryDTO = {
-          name: 'testcat',
+          name: 'test',
         };
 
-        const userDTOTemplate = {
-          sub: 1,
-          name: 'John',
-          email: `john@mail.com + ${Math.random()}`,
-          password: 'pass124',
-        };
+        const userFromDb = <PrismaUser>await prisma.user.findUnique({ where: { email: `john@mail.com` } });
 
-        await service.addNewCategory(categoryDTO, userDTOTemplate);
+        await service.addNewCategory(categoryDTO, userFromDb.id);
       } catch (error) {
         expect(error.status).toBe(400);
+        expect(error.message).toBe('Category already exists');
       }
     });
   });
 
   describe('removeCategory()', () => {
     it('should remove category', async () => {
-      jest.spyOn(service, 'ifCategoryExistsReturnsItsId').mockImplementationOnce(async () => {
-        return 0;
-      });
+      const userFromDb = <PrismaUser>await prisma.user.findUnique({ where: { email: `john@mail.com` } });
 
-      const categoryDTO: TransactionsCategoryDTO = {
-        name: 'category',
-      };
+      const createdCategory = await service.addNewCategory({ name: 'SOMECATEGORY' }, userFromDb.id);
 
-      const userDTOTemplate: User = {
-        name: 'John',
-        email: `john@mail.com + ${Math.random()}`,
-        password: 'pass124',
-      };
+      const removedCategory = await service.removeCategory(createdCategory.id, userFromDb.id);
 
-      const userFromService = await authService.register(userDTOTemplate);
-
-      const user = {
-        ...userFromService,
-        sub: userFromService.id,
-      };
-
-      const categoryToAdd = await service.addNewCategory(categoryDTO, user);
-
-      const removedCategory = await service.removeCategory(categoryToAdd.id, user);
-
-      expect(removedCategory.user_id).toEqual(user.sub);
-      expect(removedCategory.name).toEqual('CATEGORY');
+      expect(removedCategory.user_id).toEqual(userFromDb.id);
+      expect(removedCategory.name).toEqual('SOMECATEGORY');
     });
-
     it('should throw on category not exists', async () => {
       try {
-        const userDTOTemplate: User = {
-          name: 'John',
-          email: `john@mail.com + ${Math.random()}`,
-          password: 'pass124',
-        };
+        const userFromDb = <PrismaUser>await prisma.user.findUnique({ where: { email: `john@mail.com` } });
 
-        const userFromService = await authService.register(userDTOTemplate);
-
-        const user = {
-          ...userFromService,
-          sub: userFromService.id,
-        };
-
-        await service.removeCategory(1500, user);
+        await service.removeCategory(1500, userFromDb.id);
       } catch (error) {
         expect(error.status).toBe(400);
+        expect(error.message).toBe('No objects found');
       }
     });
     it('should throw on access not allowed', async () => {
       try {
-        const categoryDTO: TransactionsCategoryDTO = {
-          name: 'category',
-        };
+        const userFromDb = <PrismaUser>await prisma.user.findUnique({ where: { email: `john@mail.com` } });
 
-        const userDTOTemplate: User = {
-          name: 'John',
-          email: `john@mail.com + ${Math.random()}`,
-          password: 'pass124',
-        };
+        const createdCategory = await service.addNewCategory({ name: 'NEWCATEGORY' }, userFromDb.id);
 
-        const userFromService = await authService.register(userDTOTemplate);
-
-        const user = {
-          ...userFromService,
-          sub: userFromService.id,
-        };
-
-        const categoryToAdd = await service.addNewCategory(categoryDTO, user);
-
-        await service.removeCategory(categoryToAdd.id, user);
+        await service.removeCategory(createdCategory.id, 123321);
       } catch (error) {
         expect(error.status).toBe(401);
+        expect(error.message).toBe('Access not allowed');
       }
     });
   });
 
   describe('ifCategoryExistsReturnsItsId()', () => {
     it('should return existing category id', async () => {
-      const exampleCategory = {
-        id: 99,
-        user_id: 100,
-        name: 'hello',
-      };
+      const userFromDb = <PrismaUser>await prisma.user.findUnique({ where: { email: `john@mail.com` } });
 
-      const trService = new TransactionCategoriesService(prismaMock);
+      const createdCategory = await service.addNewCategory({ name: 'ANYNAME' }, userFromDb.id);
 
-      const findManyMock = jest.spyOn(prismaMock.transactionCategory, 'findMany').mockResolvedValue([exampleCategory]);
+      const result = await service.ifCategoryExistsReturnsItsId(createdCategory.name, userFromDb.id);
 
-      const result = await trService.getCategoriesByUserId(123);
-
-      expect(result).toEqual([exampleCategory]);
-      expect(findManyMock).toHaveBeenCalledWith({ where: { user_id: 123 } });
+      expect(result).toEqual(createdCategory.id);
     });
     it('should return 0 if category not exists', async () => {
       const result = await service.ifCategoryExistsReturnsItsId('NOT_EXISTING_CATEGORY', 4);
