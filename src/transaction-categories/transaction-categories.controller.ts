@@ -30,7 +30,7 @@ export class TransactionCategoriesController {
       return res.status(400).json({ message: 'Category not provided' });
     }
 
-    const createdCategory = await this.categoryService.addNewCategory(categoryDTO, userFromRequest);
+    const createdCategory = await this.categoryService.addNewCategory(categoryDTO, userFromRequest.sub);
 
     return res
       .status(201)
@@ -45,7 +45,7 @@ export class TransactionCategoriesController {
       return res.status(400).json({ message: 'Id field required.' });
     }
 
-    const removedCategory = await this.categoryService.removeCategory(id, userFromRequest);
+    const removedCategory = await this.categoryService.removeCategory(id, userFromRequest.sub);
 
     return res.status(200).json({ status: 'OK', message: `Expense category removed with id: ${removedCategory.id}` });
   }

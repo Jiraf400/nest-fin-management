@@ -6,10 +6,10 @@ import { PrismaService } from '../prisma/prisma.service';
 export class TransactionCategoriesService {
   constructor(private prisma: PrismaService) {}
 
-  async addNewCategory(category: TransactionsCategoryDTO, user: any) {
+  async addNewCategory(category: TransactionsCategoryDTO, user_id: number) {
     category.name = category.name.toUpperCase().trim();
 
-    const candidateCategoryId = await this.ifCategoryExistsReturnsItsId(category.name, user.sub);
+    const candidateCategoryId = await this.ifCategoryExistsReturnsItsId(category.name, user_id);
 
     if (candidateCategoryId !== 0) {
       throw new HttpException('Category already exists', 400);
@@ -19,7 +19,7 @@ export class TransactionCategoriesService {
       data: {
         name: category.name,
         user: {
-          connect: { id: user.sub },
+          connect: { id: user_id },
         },
       },
     });
@@ -29,14 +29,14 @@ export class TransactionCategoriesService {
     return createdCategory;
   }
 
-  async removeCategory(id: number, user: any) {
+  async removeCategory(id: number, user_id: number) {
     const candidate = await this.prisma.transactionCategory.findUnique({ where: { id: id } });
 
     if (!candidate) {
       throw new HttpException('No objects found', 400);
     }
 
-    if (candidate.user_id !== user.sub) {
+    if (candidate.user_id !== user_id) {
       throw new HttpException('Access not allowed', 401);
     }
 
