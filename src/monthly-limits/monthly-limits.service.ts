@@ -11,7 +11,7 @@ export class MonthlyLimitsService {
     private notifications: MonthlyLimitsNotifications,
   ) {}
 
-  async addNewMonthLimit(dto: MonthlyLimitDTO, user_id: number) {
+  async addMonthLimit(dto: MonthlyLimitDTO, user_id: number) {
     const candidate = await this.prisma.monthlyLimit.findUnique({ where: { user_id: user_id } });
 
     if (candidate) {
@@ -56,7 +56,7 @@ export class MonthlyLimitsService {
     return changeLimit;
   }
 
-  async deleteExpenseLimit(limit_id: number, user_id: number) {
+  async deleteMonthLimit(limit_id: number, user_id: number) {
     const candidate = await this.prisma.monthlyLimit.findUnique({ where: { id: limit_id } });
 
     if (!candidate) {
