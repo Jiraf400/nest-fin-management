@@ -1,10 +1,12 @@
 import { TimeRangeEnum } from './timeRange.enum';
-import { HttpException } from '@nestjs/common';
 
 export function getTimeRangeStartAndEnd(timeRange: string) {
   const date = new Date();
   const startOfTime: Date = new Date();
   const endOfTime: Date = new Date();
+  let isTimeRangeCorrect: boolean = true;
+
+  timeRange = timeRange.toUpperCase().trim();
 
   if (timeRange === TimeRangeEnum.DAY.toString()) {
     startOfTime.setHours(0, 0, 0, 0);
@@ -16,8 +18,8 @@ export function getTimeRangeStartAndEnd(timeRange: string) {
     startOfTime.setDate(date.getDate() - 30);
     endOfTime.setHours(23, 59, 59, 999);
   } else {
-    throw new HttpException('Parameters allowed: day, week, month', 400);
+    isTimeRangeCorrect = false;
   }
 
-  return { startOfTime, endOfTime };
+  return { startOfTime, endOfTime, isTimeRangeCorrect };
 }

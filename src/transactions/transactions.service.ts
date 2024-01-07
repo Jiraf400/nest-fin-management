@@ -123,7 +123,11 @@ export class TransactionsService {
   }
 
   async getTransactionsByTimeRange(user_id: number, timeRange: string) {
-    const { startOfTime, endOfTime } = getTimeRangeStartAndEnd(timeRange);
+    const { startOfTime, endOfTime, isTimeRangeCorrect } = getTimeRangeStartAndEnd(timeRange);
+
+    if (!isTimeRangeCorrect) {
+      throw new HttpException('Parameters allowed: day, week, month', 400);
+    }
 
     const user = <User>await this.prisma.user.findUnique({ where: { id: user_id } });
 
