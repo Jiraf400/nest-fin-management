@@ -19,7 +19,7 @@ describe('TransactionCategoriesController', () => {
     service = module.get(TransactionCategoriesService);
     controller = module.get(TransactionCategoriesController);
     prisma = module.get(PrismaService);
-    await prisma.cleanDatabase(prisma.transactionCategory);
+    // await prisma.cleanDatabase(prisma.transactionCategory);
   });
 
   it('should be defined', () => {
@@ -42,6 +42,9 @@ describe('TransactionCategoriesController', () => {
 
       const mockRequest = {
         body: {
+          user: {
+            sub: 1,
+          },
           name: 'PETS',
         },
       } as Request;
@@ -97,6 +100,9 @@ describe('TransactionCategoriesController', () => {
 
       const mockRequest = {
         body: {
+          user: {
+            sub: 1,
+          },
           name: 'blah blah blah',
         },
       } as unknown as Request;
