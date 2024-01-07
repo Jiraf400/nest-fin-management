@@ -4,8 +4,6 @@ import { TransactionsService } from './transactions.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { TransactionsMapper } from './mappers/transactions.mapper';
 import { TransactionCategoriesService } from '../transaction-categories/transaction-categories.service';
-import { MonthlyLimitsService } from '../monthly-limits/monthly-limits.service';
-import { MonthlyLimitsNotifications } from '../monthly-limits/monthly-limits.notifications';
 import { MonthlyLimitsModule } from '../monthly-limits/monthly-limits.module';
 
 @Module({
