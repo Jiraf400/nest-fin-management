@@ -19,7 +19,6 @@ describe('TransactionCategoriesController', () => {
     service = module.get(TransactionCategoriesService);
     controller = module.get(TransactionCategoriesController);
     prisma = module.get(PrismaService);
-    // await prisma.cleanDatabase(prisma.transactionCategory);
   });
 
   it('should be defined', () => {
