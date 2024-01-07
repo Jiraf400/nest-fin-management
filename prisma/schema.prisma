@@ -27,7 +27,7 @@ model Transaction {
   amount      Int
   description String
   date        DateTime
-  user        User                @relation(fields: [user_id], references: [id])
+  user        User                @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
   category    TransactionCategory @relation(fields: [category_id], references: [id])
   type        TransactionType     @relation(fields: [type_id], references: [id])
 

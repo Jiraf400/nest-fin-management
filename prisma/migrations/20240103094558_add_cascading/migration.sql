@@ -9,3 +9,9 @@ ALTER TABLE "transaction_categories" ADD CONSTRAINT "transaction_categories_user
 
 -- AddForeignKey
 ALTER TABLE "monthly_limits" ADD CONSTRAINT "monthly_limits_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- DropForeignKey
+ALTER TABLE "transactions" DROP CONSTRAINT "transactions_user_id_fkey";
+
+-- AddForeignKey
+ALTER TABLE "transactions" ADD CONSTRAINT "transactions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
