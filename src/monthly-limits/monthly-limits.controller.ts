@@ -51,7 +51,7 @@ export class MonthlyLimitsController {
 
     const changed = await this.mLimitsService.changeLimitAmount(mlDto.limit_amount, userFromRequest.sub, limit_id);
 
-    return res.status(201).json({ status: 'OK', message: 'Successfully update limit', body: changed });
+    return res.status(200).json({ status: 'OK', message: 'Successfully update limit', body: changed });
   }
 
   @Delete(':id')
@@ -64,6 +64,6 @@ export class MonthlyLimitsController {
 
     const deleteLimit = await this.mLimitsService.deleteMonthLimit(limit_id, userFromRequest.sub);
 
-    return res.status(201).json({ status: 'OK', message: 'Successfully delete limit', body: deleteLimit });
+    return res.status(200).json({ status: 'OK', message: 'Successfully delete limit', body: deleteLimit });
   }
 }
