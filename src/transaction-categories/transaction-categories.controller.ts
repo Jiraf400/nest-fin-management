@@ -34,7 +34,7 @@ export class TransactionCategoriesController {
 
     return res
       .status(201)
-      .json({ status: 'OK', message: 'Successfully add new expense category', body: createdCategory });
+      .json({ status: 'OK', message: 'Successfully add new transaction category', body: createdCategory });
   }
 
   @Delete(':id')
@@ -47,6 +47,8 @@ export class TransactionCategoriesController {
 
     const removedCategory = await this.categoryService.removeCategory(id, userFromRequest.sub);
 
-    return res.status(200).json({ status: 'OK', message: `Expense category removed with id: ${removedCategory.id}` });
+    return res
+      .status(200)
+      .json({ status: 'OK', message: `Transaction category removed with id: ${removedCategory.id}` });
   }
 }

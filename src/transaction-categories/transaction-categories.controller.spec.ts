@@ -57,7 +57,7 @@ describe('TransactionCategoriesController', () => {
       expect(mockResponse.status).toHaveBeenCalledWith(201);
       expect(mockResponse.json).toHaveBeenCalledWith({
         status: 'OK',
-        message: 'Successfully add new expense category',
+        message: 'Successfully add new transaction category',
         body: createdCategory,
       });
     });
@@ -115,7 +115,7 @@ describe('TransactionCategoriesController', () => {
       expect(mockResponse.status).toHaveBeenCalledWith(200);
       expect(mockResponse.json).toHaveBeenCalledWith({
         status: 'OK',
-        message: `Expense category removed with id: ${removedCategory.id}`,
+        message: `Transaction category removed with id: ${removedCategory.id}`,
       });
     });
     it('should throw on empty id or not integer id', async () => {
