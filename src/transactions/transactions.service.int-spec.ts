@@ -276,6 +276,51 @@ describe('TransactionsService', () => {
       }
     });
   });
+  describe('getTransactionsByTimeRange()', () => {
+    it('should return transaction list by time range', async () => {
+      const userTemp = {
+        name: 'Bill',
+        email: 'bill@mail.com',
+        password: 'pass1234',
+      };
+
+      const user = await authService.register(userTemp);
+
+      const categoryForExpense = await trCategoryService.addNewCategory({ name: 'beauty' }, user.id);
+      const categoryForIncome = await trCategoryService.addNewCategory({ name: 'salary' }, user.id);
+
+      const incomeTemplate: TransactionsDto = {
+        amount: 100,
+        description: 'test 5',
+        category: categoryForIncome.name,
+        type: 'INCOME',
+      };
+
+      const expenseTemplate: TransactionsDto = {
+        amount: 150,
+        description: 'test 6',
+        category: categoryForExpense.name,
+        type: 'EXPENSE',
+      };
+
+      await service.addNewTransaction(user.id, incomeTemplate);
+      await service.addNewTransaction(user.id, expenseTemplate);
+
+      const result = await service.getTransactionsByTimeRange(user.id, 'day');
+
+      expect(result.total_expenses).toEqual(150);
+      expect(result.total_incomes).toEqual(100);
+      expect(result.list.length).toEqual(2);
+    });
+    it('should throw (400) if timeRange is incorrect', async () => {
+      try {
+        await service.getTransactionsByTimeRange(1, 'banana');
+      } catch (error) {
+        expect(error.status).toBe(400);
+        expect(error.message).toBe('Parameters allowed: day, week, month');
+      }
+    });
+  });
   describe('validateTranscationTypeOrThrow()', () => {
     it('should return data if tr type is correct', async () => {
       const correctType = 'EXPENSE';
