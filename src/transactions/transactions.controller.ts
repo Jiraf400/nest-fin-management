@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpException,
   Param,
   ParseIntPipe,
   Patch,
@@ -18,6 +19,7 @@ import { Request, Response } from 'express';
 import { TransactionsService } from './transactions.service';
 import { TransactionsDto } from './dto/transactions.dto';
 import { TransactionsCategoryDTO } from '../transaction-categories/dto/tr-category.dto';
+import { getTimeRangeStartAndEnd } from '../utils/timerange/timeRange.func';
 
 @Controller('transactions')
 @UsePipes(ValidationPipe)
@@ -41,7 +43,16 @@ export class TransactionsController {
   @Get('find-by/:timeRange')
   async getTransactionsByTimeRange(@Req() req: Request, @Res() res: Response, @Param('timeRange') timeRange: string) {
     const userFromRequest = req.body.user;
-    timeRange = timeRange.toUpperCase();
+
+    if (!userFromRequest) {
+      return res.status(400).json({ message: 'All fields must be filled' });
+    }
+
+    const { isTimeRangeCorrect } = getTimeRangeStartAndEnd(timeRange);
+
+    if (!isTimeRangeCorrect) {
+      return res.status(400).json({ message: 'Parameters allowed: day, week, month' });
+    }
 
     const transactions = await this.transactionService.getTransactionsByTimeRange(userFromRequest.sub, timeRange);
 
@@ -51,6 +62,10 @@ export class TransactionsController {
   @Get(':id')
   async getSingleTransaction(@Req() req: Request, @Res() res: Response, @Param('id', ParseIntPipe) id: number) {
     const userFromRequest = req.body.user;
+
+    if (!userFromRequest) {
+      return res.status(400).json({ message: 'All fields must be filled' });
+    }
 
     if (!id || !isFinite(id)) {
       return res.status(400).json({ message: 'Id field required.' });
@@ -69,7 +84,10 @@ export class TransactionsController {
     @Param('id', ParseIntPipe) id: number,
   ) {
     const userFromRequest = req.body.user;
-    category.name = category.name.toUpperCase().trim();
+
+    if (!userFromRequest) {
+      return res.status(400).json({ message: 'All fields must be filled' });
+    }
 
     if (!id || !category) {
       return res.status(400).json({ message: 'All fields must be filled.' });
@@ -83,6 +101,10 @@ export class TransactionsController {
   @Delete(':id')
   async deleteTransaction(@Req() req: Request, @Res() res: Response, @Param('id', ParseIntPipe) id: number) {
     const userFromRequest = req.body.user;
+
+    if (!userFromRequest) {
+      return res.status(400).json({ message: 'All fields must be filled' });
+    }
 
     if (!id || !isFinite(id)) {
       return res.status(400).json({ message: 'Id field required.' });
