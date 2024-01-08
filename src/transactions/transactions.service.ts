@@ -141,12 +141,16 @@ export class TransactionsService {
       },
     });
 
-    const { formatted, total } = await this.mapper.mapTransactionListToJSONModelList(candidates, user);
+    const { formatted, total_expenses, total_incomes } = await this.mapper.mapTransactionListToJSONModelList(
+      candidates,
+      user,
+    );
 
     console.log(`${candidates.length} transactions found by time range ${startOfTime} : ${endOfTime}`);
 
     return {
-      total,
+      total_expenses,
+      total_incomes,
       list: formatted,
     };
   }

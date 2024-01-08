@@ -1,4 +1,4 @@
-import { Transaction, TransactionCategory, User } from '@prisma/client';
+import { Transaction, TransactionCategory, TransactionType, User } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
 import { GetTransactionDTO } from '../dto/transactions-get.dto';
@@ -7,15 +7,23 @@ import { GetTransactionDTO } from '../dto/transactions-get.dto';
 export class TransactionsMapper {
   constructor(private prisma: PrismaService) {}
 
-  async mapTransactionListToJSONModelList(candidates: any[], user: any) {
-    let total = 0;
+  async mapTransactionListToJSONModelList(candidates: Transaction[], user: any) {
+    let total_expenses = 0;
+    let total_incomes = 0;
     let type = '';
 
     const formatted: GetTransactionDTO[] = [];
 
     for (const tr of candidates) {
-      total += tr.amount;
-      type = tr.type;
+      const trType = <TransactionType>await this.prisma.transactionType.findUnique({ where: { id: tr.type_id } });
+
+      if (trType.name === 'EXPENSE') {
+        total_expenses += tr.amount;
+      } else {
+        total_incomes += tr.amount;
+      }
+
+      type = trType.name;
 
       const category = <TransactionCategory>(
         await this.prisma.transactionCategory.findUnique({ where: { id: tr.category_id } })
@@ -25,7 +33,7 @@ export class TransactionsMapper {
       formatted.push(unit);
     }
 
-    return { formatted, total };
+    return { formatted, total_expenses, total_incomes };
   }
 
   mapTransactionToModel(tr: Transaction, u: User, cat: TransactionCategory, type: string): GetTransactionDTO {
