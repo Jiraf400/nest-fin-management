@@ -1,69 +1,94 @@
 import {
-  Body,
-  Controller,
-  Delete,
-  Param,
-  ParseIntPipe,
-  Patch,
-  Post,
-  Req,
-  Res,
-  UseGuards,
-  UsePipes,
-  ValidationPipe,
+	Body,
+	Controller,
+	Delete,
+	Param,
+	ParseIntPipe,
+	Patch,
+	Post,
+	Req,
+	Res,
+	UseGuards,
+	UsePipes,
+	ValidationPipe,
 } from '@nestjs/common';
-import { MonthlyLimitsService } from './monthly-limits.service';
+import { MonthlyLimit } from '@prisma/client';
 import { Request, Response } from 'express';
-import { AuthGuard } from '../auth/auth.guard';
-import { MonthlyLimitDTO } from './dto/mlimit.dto';
+import { UserFromToken } from 'src/utils/dtos/user-token.dto';
+import { AuthGuard } from '../auth/guard/auth.guard';
+import { MonthlyLimitDTO } from './dto/monthly-limit.dto';
+import { MonthlyLimitsService } from './monthly-limits.service';
 
 @UsePipes(ValidationPipe)
 @UseGuards(AuthGuard)
 @Controller('limits')
 export class MonthlyLimitsController {
-  constructor(private mLimitsService: MonthlyLimitsService) {}
+	constructor(private mLimitsService: MonthlyLimitsService) {}
 
-  @Post()
-  async addMonthLimit(@Req() req: Request, @Res() res: Response, @Body() mlDto: MonthlyLimitDTO) {
-    const userFromRequest = req.body.user;
+	@Post()
+	async addMonthLimit(
+		@Req() req: Request,
+		@Res() res: Response,
+		@Body() limitDto: MonthlyLimitDTO,
+	): Promise<Response> {
+		const requestUser: UserFromToken = req.body.user;
 
-    if (!userFromRequest || !mlDto.limit_amount) {
-      return res.status(400).json({ message: 'All fields must be filled.' });
-    }
+		if (!requestUser || !limitDto.limit_amount) {
+			return res.status(400).json({ message: 'All fields must be filled.' });
+		}
 
-    const created = await this.mLimitsService.addMonthLimit(mlDto, userFromRequest.sub);
+		const created: MonthlyLimit = await this.mLimitsService.addMonthLimit(limitDto, requestUser.id);
 
-    return res.status(201).json({ status: 'OK', message: 'Successfully set limit', body: created });
-  }
+		return res.status(201).json({ status: 'OK', message: 'Successfully set limit', body: created });
+	}
 
 	@Patch(':id')
 	async changeMonthLimitAmount(
 		@Req() req: Request,
 		@Res() res: Response,
 		@Param('id', ParseIntPipe) limit_id: number,
-    @Body() mlDto: MonthlyLimitDTO,
-  ) {
-    const userFromRequest = req.body.user;
+		@Body() limitDto: MonthlyLimitDTO,
+	): Promise<Response> {
+		const requestUser: UserFromToken = req.body.user;
 
-    if (!userFromRequest || !mlDto.limit_amount) {
-      return res.status(400).json({ message: 'All fields must be filled.' });
-    }
+		if (!requestUser || !limitDto.limit_amount) {
+			return res.status(400).json({ message: 'All fields must be filled.' });
+		}
 
-    const changed = await this.mLimitsService.changeLimitAmount(mlDto.limit_amount, userFromRequest.sub, limit_id);
+		const changed: MonthlyLimit = await this.mLimitsService.changeLimitAmount(
+			limitDto.limit_amount,
+			requestUser.id,
+			limit_id,
+		);
 
-    return res.status(200).json({ status: 'OK', message: 'Successfully update limit', body: changed });
-  }
+		return res.status(200).json({
+			status: 'OK',
+			message: 'Successfully update limit',
+			body: changed,
+		});
+	}
 
-  @Delete(':id')
-  async removeMonthLimit(@Req() req: Request, @Res() res: Response, @Param('id', ParseIntPipe) limit_id: number) {
-    const userFromRequest = req.body.user;
+	@Delete(':id')
+	async removeMonthLimit(
+		@Req() req: Request,
+		@Res() res: Response,
+		@Param('id', ParseIntPipe) limit_id: number,
+	): Promise<Response> {
+		const requestUser: UserFromToken = req.body.user;
 
-    if (!userFromRequest || !limit_id) {
-      return res.status(400).json({ message: 'All fields must be filled.' });
-    }
+		if (!requestUser || !limit_id) {
+			return res.status(400).json({ message: 'All fields must be filled.' });
+		}
 
-    const deleteLimit = await this.mLimitsService.deleteMonthLimit(limit_id, userFromRequest.sub);
+		const deleteLimit: MonthlyLimit = await this.mLimitsService.deleteMonthLimit(
+			limit_id,
+			requestUser.id,
+		);
 
-    return res.status(200).json({ status: 'OK', message: 'Successfully delete limit', body: deleteLimit });
-  }
+		return res.status(200).json({
+			status: 'OK',
+			message: 'Successfully delete limit',
+			body: deleteLimit,
+		});
+	}
 }
