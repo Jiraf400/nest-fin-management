@@ -1,64 +1,75 @@
 import { HttpException, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { PrismaService } from '../prisma/prisma.service';
-import { User } from './user/user.model';
+import { User as PrismaUser } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import * as process from 'process';
+import { PrismaService } from '../prisma/prisma.service';
+import { UserLoginDto } from './dtos/user-login.dto';
+import { UserRegisterDto } from './dtos/user-register.dto';
 
 @Injectable()
 export class AuthService {
-  constructor(
-    private jwt: JwtService,
-    private prisma: PrismaService,
-  ) {}
+	constructor(
+		private jwt: JwtService,
+		private prisma: PrismaService
+	) {}
 
-  async register(data: User) {
-    const duplicate = await this.prisma.user.findUnique({ where: { email: data.email } });
+	async register(registerDto: UserRegisterDto) {
+		const duplicate = await this.prisma.user.findUnique({
+			where: { email: registerDto.email },
+		});
 
-    if (duplicate) {
-      throw new HttpException('User already exists', 400);
-    }
+		if (duplicate) {
+			throw new HttpException('User already exists', 400);
+		}
 
-    data.password = await bcrypt.hash(data.password, 8);
+		registerDto.password = await bcrypt.hash(registerDto.password, 8);
 
-    const created = await this.prisma.user.create({ data });
+		const created: PrismaUser = await this.prisma.user.create({
+			data: registerDto,
+		});
 
-    console.log(`Create user ${created.id}`);
+		console.log(`Create user ${created.id}`);
 
-    return created;
-  }
+		return created;
+	}
 
-  async login(email: any, password: any) {
-    const candidate = await this.prisma.user.findUnique({ where: { email: email } });
+	async login(loginDto: UserLoginDto): Promise<string> {
+		const candidate = await this.prisma.user.findUnique({
+			where: { email: loginDto.email },
+		});
 
-    if (!candidate) {
-      throw new HttpException('User not exists', 400);
-    }
+		if (!candidate) {
+			throw new HttpException('User not exists', 400);
+		}
 
-    const match = await bcrypt.compare(password, candidate.password);
+		const match = await bcrypt.compare(loginDto.password, candidate.password);
 
-    if (!match) {
-      throw new HttpException('Failed to match credentials', 400);
-    }
+		if (!match) {
+			throw new HttpException('Failed to match credentials', 400);
+		}
 
-    console.log(`Create token for user ${email}`);
+		console.log(`Create token for user ${loginDto.email}`);
 
-    const accessToken = await this.generateJwtToken(email, candidate.id);
+		const accessToken: string = await this.generateJwtToken(
+			loginDto.email,
+			candidate.id
+		);
 
-    return {
-      access_token: accessToken,
-    };
-  }
+		return accessToken;
+	}
 
-  async generateJwtToken(email: string, candidate_id: number) {
-    const payload = { email: email, sub: candidate_id };
+	async generateJwtToken(email: string, candidate_id: number): Promise<string> {
+		const payload = { email: email, sub: candidate_id };
 
-    return await this.jwt.signAsync(payload, { secret: `${process.env.JWT_SECRET}` });
-  }
+		return await this.jwt.signAsync(payload, {
+			secret: `${process.env.JWT_SECRET}`,
+		});
+	}
 }
 
 export function isEmailValid(email: any): boolean {
-  const expression: RegExp = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
+	const expression: RegExp = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
 
-  return expression.test(email);
+	return expression.test(email);
 }

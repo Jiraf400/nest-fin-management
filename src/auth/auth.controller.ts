@@ -1,36 +1,52 @@
-import { Controller, Post, Req, Res } from '@nestjs/common';
-import { Response, Request } from 'express';
-import { User } from './user/user.model';
-import { AuthService } from './auth.service';
-import { isEmailValid } from './auth.service';
+import {
+	Body,
+	Controller,
+	Post,
+	Res,
+	UsePipes,
+	ValidationPipe,
+} from '@nestjs/common';
+import { User as PrismaUser } from '@prisma/client';
+import { Response } from 'express';
+import { AuthService, isEmailValid } from './auth.service';
+import { UserLoginDto } from './dtos/user-login.dto';
+import { UserRegisterDto } from './dtos/user-register.dto';
 
 @Controller('auth')
+@UsePipes(ValidationPipe)
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+	constructor(private readonly authService: AuthService) {}
 
-  @Post('register')
-  async registerNewUser(@Req() req: Request, @Res() res: Response) {
-    const { name, email, password } = req.body;
+	@Post('register')
+	async registerNewUser(
+		@Res() res: Response,
+		@Body() registerDto: UserRegisterDto
+	): Promise<Response> {
+		if (!registerDto || !isEmailValid(registerDto.email)) {
+			return res.status(400).json({ message: 'All fields must be filled.' });
+		}
 
-    if (!name || !email || !password || !isEmailValid(email)) {
-      return res.status(400).json({ message: 'All fields must be filled.' });
-    }
+		const createdUser: PrismaUser =
+			await this.authService.register(registerDto);
 
-    const createdUser = await this.authService.register(new User(name, email, password));
+		return res.status(201).json({
+			status: 'OK',
+			message: 'Successfully register new user',
+			body: createdUser,
+		});
+	}
 
-    return res.status(201).json({ status: 'OK', message: 'Successfully register new user', body: createdUser });
-  }
+	@Post('login')
+	async loginUser(
+		@Res() res: Response,
+		@Body() loginDto: UserLoginDto
+	): Promise<Response> {
+		if (!loginDto || !loginDto.password || !loginDto.email) {
+			return res.status(400).json({ message: 'All fields must be filled.' });
+		}
 
-  @Post('login')
-  async loginUser(@Req() req: Request, @Res() res: Response) {
-    const { email, password } = req.body;
+		const access_token: string = await this.authService.login(loginDto);
 
-    if (!email || !password) {
-      return res.status(400).json({ message: 'All fields must be filled.' });
-    }
-
-    const accessToken = await this.authService.login(email, password);
-
-    res.status(200).json(accessToken);
-  }
+		return res.status(200).json({ accessToken: access_token });
+	}
 }

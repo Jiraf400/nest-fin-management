@@ -36,11 +36,11 @@ export class MonthlyLimitsController {
     return res.status(201).json({ status: 'OK', message: 'Successfully set limit', body: created });
   }
 
-  @Patch(':id')
-  async changeMonthLimitAmount(
-    @Req() req: Request,
-    @Res() res: Response,
-    @Param('id', ParseIntPipe) limit_id: number,
+	@Patch(':id')
+	async changeMonthLimitAmount(
+		@Req() req: Request,
+		@Res() res: Response,
+		@Param('id', ParseIntPipe) limit_id: number,
     @Body() mlDto: MonthlyLimitDTO,
   ) {
     const userFromRequest = req.body.user;
