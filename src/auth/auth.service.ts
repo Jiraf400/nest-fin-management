@@ -1,6 +1,6 @@
 import { HttpException, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { User as PrismaUser } from '@prisma/client';
+import { User as PrismaUser, User } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import * as process from 'process';
 import { PrismaService } from '../prisma/prisma.service';
@@ -11,11 +11,11 @@ import { UserRegisterDto } from './dtos/user-register.dto';
 export class AuthService {
 	constructor(
 		private jwt: JwtService,
-		private prisma: PrismaService
+		private prisma: PrismaService,
 	) {}
 
 	async register(registerDto: UserRegisterDto) {
-		const duplicate = await this.prisma.user.findUnique({
+		const duplicate: User | null = await this.prisma.user.findUnique({
 			where: { email: registerDto.email },
 		});
 
@@ -35,7 +35,7 @@ export class AuthService {
 	}
 
 	async login(loginDto: UserLoginDto): Promise<string> {
-		const candidate = await this.prisma.user.findUnique({
+		const candidate: User | null = await this.prisma.user.findUnique({
 			where: { email: loginDto.email },
 		});
 
@@ -51,10 +51,7 @@ export class AuthService {
 
 		console.log(`Create token for user ${loginDto.email}`);
 
-		const accessToken: string = await this.generateJwtToken(
-			loginDto.email,
-			candidate.id
-		);
+		const accessToken: string = await this.generateJwtToken(loginDto.email, candidate.id);
 
 		return accessToken;
 	}
