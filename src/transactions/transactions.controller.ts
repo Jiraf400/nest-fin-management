@@ -1,117 +1,154 @@
 import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  HttpException,
-  Param,
-  ParseIntPipe,
-  Patch,
-  Post,
-  Req,
-  Res,
-  UseGuards,
-  UsePipes,
-  ValidationPipe,
+	Body,
+	Controller,
+	Delete,
+	Get,
+	Param,
+	ParseIntPipe,
+	Patch,
+	Post,
+	Req,
+	Res,
+	UseGuards,
+	UsePipes,
+	ValidationPipe,
 } from '@nestjs/common';
-import { AuthGuard } from '../auth/auth.guard';
+import { Transaction, User } from '@prisma/client';
 import { Request, Response } from 'express';
-import { TransactionsService } from './transactions.service';
-import { TransactionsDto } from './dto/transactions.dto';
-import { TransactionsCategoryDTO } from '../transaction-categories/dto/tr-category.dto';
+import { UserFromToken } from 'src/utils/dtos/user-token.dto';
+import { AuthGuard } from '../auth/guard/auth.guard';
+import { CreateCategoryDTO } from '../transaction-categories/dto/create-category.dto';
 import { getTimeRangeStartAndEnd } from '../utils/timerange/timeRange.func';
+import { TransactionsDto } from './dto/transactions.dto';
+import { TransactionsService } from './transactions.service';
 
 @Controller('transactions')
 @UsePipes(ValidationPipe)
 @UseGuards(AuthGuard)
 export class TransactionsController {
-  constructor(private transactionService: TransactionsService) {}
+	constructor(private transactionService: TransactionsService) {}
 
-  @Post()
-  async createTransaction(@Req() req: Request, @Res() res: Response, @Body() trDto: TransactionsDto) {
-    const userFromRequest = req.body.user;
+	@Post()
+	async createTransaction(
+		@Req() req: Request,
+		@Res() res: Response,
+		@Body() trDto: TransactionsDto,
+	): Promise<Response> {
+		const requestUser: User = req.body.user;
 
-    if (!userFromRequest || !trDto) {
-      return res.status(400).json({ message: 'All fields must be filled.' });
-    }
+		if (!requestUser || !trDto) {
+			return res.status(400).json({ message: 'All fields must be filled.' });
+		}
 
-    const created = await this.transactionService.addNewTransaction(userFromRequest.sub, trDto);
+		const created: Transaction = await this.transactionService.addNewTransaction(
+			requestUser.id,
+			trDto,
+		);
 
-    return res.status(201).json({ status: 'OK', message: 'Successfully add new transaction', body: created });
-  }
+		return res.status(201).json({
+			status: 'OK',
+			message: 'Successfully add new transaction',
+			body: created,
+		});
+	}
 
-  @Get('find-by/:timeRange')
-  async getTransactionsByTimeRange(@Req() req: Request, @Res() res: Response, @Param('timeRange') timeRange: string) {
-    const userFromRequest = req.body.user;
+	@Get('find-by/:timeRange')
+	async getTransactionsByTimeRange(
+		@Req() req: Request,
+		@Res() res: Response,
+		@Param('timeRange') timeRange: string,
+	): Promise<Response> {
+		const requestUser: UserFromToken = req.body.user;
 
-    if (!userFromRequest) {
-      return res.status(400).json({ message: 'All fields must be filled' });
-    }
+		if (!requestUser) {
+			return res.status(400).json({ message: 'All fields must be filled' });
+		}
 
-    const { isTimeRangeCorrect } = getTimeRangeStartAndEnd(timeRange);
+		const { isTimeRangeCorrect } = getTimeRangeStartAndEnd(timeRange);
 
-    if (!isTimeRangeCorrect) {
-      return res.status(400).json({ message: 'Parameters allowed: day, week, month' });
-    }
+		if (!isTimeRangeCorrect) {
+			return res.status(400).json({ message: 'Parameters allowed: day, week, month' });
+		}
 
-    const transactions = await this.transactionService.getTransactionsByTimeRange(userFromRequest.sub, timeRange);
+		const transactions = await this.transactionService.getTransactionsByTimeRange(
+			requestUser.id,
+			timeRange,
+		);
 
-    return res.status(200).json(transactions);
-  }
+		return res.status(200).json(transactions);
+	}
 
-  @Get(':id')
-  async getSingleTransaction(@Req() req: Request, @Res() res: Response, @Param('id', ParseIntPipe) id: number) {
-    const userFromRequest = req.body.user;
+	@Get(':id')
+	async getSingleTransaction(
+		@Req() req: Request,
+		@Res() res: Response,
+		@Param('id', ParseIntPipe) id: number,
+	) {
+		const userFromRequest = req.body.user;
 
-    if (!userFromRequest) {
-      return res.status(400).json({ message: 'All fields must be filled' });
-    }
+		if (!userFromRequest) {
+			return res.status(400).json({ message: 'All fields must be filled' });
+		}
 
-    if (!id || !isFinite(id)) {
-      return res.status(400).json({ message: 'Id field required.' });
-    }
+		if (!id || !isFinite(id)) {
+			return res.status(400).json({ message: 'Id field required.' });
+		}
 
-    const transaction = await this.transactionService.getSingleTransaction(id, userFromRequest.sub);
+		const transaction = await this.transactionService.getSingleTransaction(id, userFromRequest.sub);
 
-    return res.status(200).json({ status: 'OK', message: 'Success', body: transaction });
-  }
+		return res.status(200).json({ status: 'OK', message: 'Success', body: transaction });
+	}
 
-  @Patch(':id')
-  async changeTransactionCategory(
-    @Req() req: Request,
-    @Res() res: Response,
-    @Body() category: TransactionsCategoryDTO,
-    @Param('id', ParseIntPipe) id: number,
-  ) {
-    const userFromRequest = req.body.user;
+	@Patch(':id')
+	async changeTransactionCategory(
+		@Req() req: Request,
+		@Res() res: Response,
+		@Body() category: CreateCategoryDTO,
+		@Param('id', ParseIntPipe) id: number,
+	) {
+		const userFromRequest = req.body.user;
 
-    if (!userFromRequest) {
-      return res.status(400).json({ message: 'All fields must be filled' });
-    }
+		if (!userFromRequest) {
+			return res.status(400).json({ message: 'All fields must be filled' });
+		}
 
-    if (!id || !category) {
-      return res.status(400).json({ message: 'All fields must be filled.' });
-    }
+		if (!id || !category) {
+			return res.status(400).json({ message: 'All fields must be filled.' });
+		}
 
-    const changed = await this.transactionService.changeTransactionCategory(category.name, id, userFromRequest.sub);
+		const changed = await this.transactionService.changeTransactionCategory(
+			category.name,
+			id,
+			userFromRequest.sub,
+		);
 
-    return res.status(200).json({ status: 'OK', message: `Transaction changed with id: ${changed.id}` });
-  }
+		return res.status(200).json({
+			status: 'OK',
+			message: `Transaction changed with id: ${changed.id}`,
+		});
+	}
 
-  @Delete(':id')
-  async deleteTransaction(@Req() req: Request, @Res() res: Response, @Param('id', ParseIntPipe) id: number) {
-    const userFromRequest = req.body.user;
+	@Delete(':id')
+	async deleteTransaction(
+		@Req() req: Request,
+		@Res() res: Response,
+		@Param('id', ParseIntPipe) id: number,
+	) {
+		const userFromRequest = req.body.user;
 
-    if (!userFromRequest) {
-      return res.status(400).json({ message: 'All fields must be filled' });
-    }
+		if (!userFromRequest) {
+			return res.status(400).json({ message: 'All fields must be filled' });
+		}
 
-    if (!id || !isFinite(id)) {
-      return res.status(400).json({ message: 'Id field required.' });
-    }
+		if (!id || !isFinite(id)) {
+			return res.status(400).json({ message: 'Id field required.' });
+		}
 
-    const deleted = await this.transactionService.removeTransaction(id, userFromRequest.sub);
+		const deleted = await this.transactionService.removeTransaction(id, userFromRequest.sub);
 
-    return res.status(200).json({ status: 'OK', message: `Transaction removed with id: ${deleted.id}` });
-  }
+		return res.status(200).json({
+			status: 'OK',
+			message: `Transaction removed with id: ${deleted.id}`,
+		});
+	}
 }
