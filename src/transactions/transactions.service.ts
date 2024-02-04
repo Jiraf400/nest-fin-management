@@ -1,5 +1,6 @@
 import { HttpException, Injectable } from '@nestjs/common';
 import { Transaction, TransactionCategory, TransactionType, User } from '@prisma/client';
+import { TimeRangeDto } from 'src/utils/timerange/dtos/timerange.dto';
 import { MonthlyLimitsService } from '../monthly-limits/monthly-limits.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { TransactionCategoriesService } from '../transaction-categories/transaction-categories.service';
@@ -24,12 +25,16 @@ export class TransactionsService {
 			user_id,
 		);
 
+		if (categoryCandidateId === 0) {
+			throw new HttpException('Transaction category not found', 404);
+		}
+
 		const trType: string = this.validateTransactionTypeOrThrow(trDto.type);
 
 		const user: User = <User>await this.prisma.user.findUnique({ where: { id: user_id } });
 
-		if (!user || categoryCandidateId === 0) {
-			throw new HttpException('Cannot add transaction with such parameters', 400);
+		if (!user) {
+			throw new HttpException('User not found', 404);
 		}
 
 		const addedTransaction: Transaction = await this.prisma.transaction.create({
@@ -64,7 +69,7 @@ export class TransactionsService {
 		);
 
 		if (!candidate) {
-			throw new HttpException('No objects found', 400);
+			throw new HttpException('No objects found', 404);
 		}
 
 		if (candidate.user_id !== user_id) {
@@ -92,7 +97,7 @@ export class TransactionsService {
 		);
 
 		if (!candidate) {
-			throw new HttpException('No objects found', 400);
+			throw new HttpException('No objects found', 404);
 		}
 
 		if (candidate.user_id !== user_id) {
@@ -123,11 +128,11 @@ export class TransactionsService {
 		);
 
 		if (!transaction) {
-			throw new HttpException('No objects found', 400);
+			throw new HttpException('No objects found', 404);
 		}
 
 		if (categoryCandidateId === 0) {
-			throw new HttpException('No categories found. Please create new category', 400);
+			throw new HttpException('No categories found. Please create new category', 404);
 		}
 
 		if (transaction.user_id !== user_id) {
@@ -148,16 +153,24 @@ export class TransactionsService {
 		user_id: number,
 		timeRange: string,
 	): Promise<GetTransactionsDtoList> {
-		const { startOfTime, endOfTime } = getTimeRangeStartAndEnd(timeRange);
+		const timeRangeDto: TimeRangeDto = getTimeRangeStartAndEnd(timeRange);
+
+		if (!timeRangeDto.isTimeRangeCorrect) {
+			throw new HttpException('Parameters allowed: day, week, month', 400);
+		}
 
 		const user: User = <User>await this.prisma.user.findUnique({ where: { id: user_id } });
+
+		if (!user) {
+			throw new HttpException('User not found', 404);
+		}
 
 		const candidates: Transaction[] = await this.prisma.transaction.findMany({
 			where: {
 				user_id: user.id,
 				date: {
-					gte: startOfTime.toISOString(),
-					lte: endOfTime.toISOString(),
+					gte: timeRangeDto.startOfTime.toISOString(),
+					lte: timeRangeDto.endOfTime.toISOString(),
 				},
 			},
 		});
@@ -166,7 +179,7 @@ export class TransactionsService {
 			await this.mapper.mapTransactionListToJSONModelList(candidates, user);
 
 		console.log(
-			`${candidates.length} transactions found by time range ${startOfTime} : ${endOfTime}`,
+			`${candidates.length} transactions found by time range ${timeRangeDto.startOfTime} : ${timeRangeDto.endOfTime}`,
 		);
 
 		return listOfTransactions;

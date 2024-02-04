@@ -18,7 +18,6 @@ import { Request, Response } from 'express';
 import { UserFromToken } from 'src/utils/dtos/user-token.dto';
 import { AuthGuard } from '../auth/guard/auth.guard';
 import { CreateCategoryDTO } from '../transaction-categories/dto/create-category.dto';
-import { getTimeRangeStartAndEnd } from '../utils/timerange/timeRange.func';
 import { TransactionsDto } from './dto/transactions.dto';
 import { TransactionsService } from './transactions.service';
 
@@ -62,12 +61,6 @@ export class TransactionsController {
 
 		if (!requestUser) {
 			return res.status(400).json({ message: 'All fields must be filled' });
-		}
-
-		const { isTimeRangeCorrect } = getTimeRangeStartAndEnd(timeRange);
-
-		if (!isTimeRangeCorrect) {
-			return res.status(400).json({ message: 'Parameters allowed: day, week, month' });
 		}
 
 		const transactions = await this.transactionService.getTransactionsByTimeRange(
