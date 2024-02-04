@@ -1,6 +1,6 @@
 import { JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
-import { User as PrismaUser } from '@prisma/client';
+import { TransactionCategory, User } from '@prisma/client';
 import { UserRegisterDto } from 'src/auth/dtos/user-register.dto';
 import { AuthService } from '../auth/auth.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -14,12 +14,7 @@ describe('TransactionCategoriesService', () => {
 
 	beforeAll(async () => {
 		const moduleRef = await Test.createTestingModule({
-			providers: [
-				TransactionCategoriesService,
-				AuthService,
-				JwtService,
-				PrismaService,
-			],
+			providers: [TransactionCategoriesService, AuthService, JwtService, PrismaService],
 		}).compile();
 
 		prisma = moduleRef.get(PrismaService);
@@ -45,11 +40,11 @@ describe('TransactionCategoriesService', () => {
 				password: 'pass124',
 			};
 
-			const createdUser = await authService.register(userDTOTemplate);
+			const createdUser: User = await authService.register(userDTOTemplate);
 
-			const createdCategory = await service.addNewCategory(
+			const createdCategory: TransactionCategory = await service.addNewCategory(
 				categoryDTO,
-				createdUser.id
+				createdUser.id,
 			);
 
 			expect(createdCategory.name).toEqual('TEST');
@@ -61,11 +56,11 @@ describe('TransactionCategoriesService', () => {
 					name: 'test',
 				};
 
-				const userFromDb = <PrismaUser>(
-					await prisma.user.findUnique({ where: { email: `john@mail.com` } })
-				);
+				const userFromDb: User = <User>await prisma.user.findUnique({
+					where: { email: `john@mail.com` },
+				});
 
-				await service.addNewCategory(categoryDTO, userFromDb.id);
+				await service.addNewCategory(categoryDTO, (userFromDb as User).id);
 			} catch (error) {
 				expect(error.status).toBe(400);
 				expect(error.message).toBe('Category already exists');
@@ -75,30 +70,30 @@ describe('TransactionCategoriesService', () => {
 
 	describe('removeCategory()', () => {
 		it('should remove category', async () => {
-			const userFromDb = <PrismaUser>(
-				await prisma.user.findUnique({ where: { email: `john@mail.com` } })
-			);
+			const userFromDb: User = <User>await prisma.user.findUnique({
+				where: { email: `john@mail.com` },
+			});
 
-			const createdCategory = await service.addNewCategory(
+			const createdCategory: TransactionCategory = await service.addNewCategory(
 				{ name: 'SOMECATEGORY' },
-				userFromDb.id
+				(userFromDb as User).id,
 			);
 
-			const removedCategory = await service.removeCategory(
+			const removedCategory: TransactionCategory = await service.removeCategory(
 				createdCategory.id,
-				userFromDb.id
+				(userFromDb as User).id,
 			);
 
-			expect(removedCategory.user_id).toEqual(userFromDb.id);
+			expect(removedCategory.user_id).toEqual((userFromDb as User).id);
 			expect(removedCategory.name).toEqual('SOMECATEGORY');
 		});
 		it('should throw on category not exists', async () => {
 			try {
-				const userFromDb = <PrismaUser>(
-					await prisma.user.findUnique({ where: { email: `john@mail.com` } })
-				);
+				const userFromDb: User = <User>await prisma.user.findUnique({
+					where: { email: `john@mail.com` },
+				});
 
-				await service.removeCategory(1500, userFromDb.id);
+				await service.removeCategory(1500, (userFromDb as User).id);
 			} catch (error) {
 				expect(error.status).toBe(400);
 				expect(error.message).toBe('No objects found');
@@ -106,13 +101,13 @@ describe('TransactionCategoriesService', () => {
 		});
 		it('should throw on access not allowed', async () => {
 			try {
-				const userFromDb = <PrismaUser>(
-					await prisma.user.findUnique({ where: { email: `john@mail.com` } })
-				);
+				const userFromDb: User = <User>await prisma.user.findUnique({
+					where: { email: `john@mail.com` },
+				});
 
-				const createdCategory = await service.addNewCategory(
+				const createdCategory: TransactionCategory = await service.addNewCategory(
 					{ name: 'NEWCATEGORY' },
-					userFromDb.id
+					(userFromDb as User).id,
 				);
 
 				await service.removeCategory(createdCategory.id, 123321);
@@ -125,26 +120,26 @@ describe('TransactionCategoriesService', () => {
 
 	describe('ifCategoryExistsReturnsItsId()', () => {
 		it('should return existing category id', async () => {
-			const userFromDb = <PrismaUser>(
-				await prisma.user.findUnique({ where: { email: `john@mail.com` } })
-			);
+			const userFromDb: User = <User>await prisma.user.findUnique({
+				where: { email: `john@mail.com` },
+			});
 
 			const createdCategory = await service.addNewCategory(
 				{ name: 'ANYNAME' },
-				userFromDb.id
+				(userFromDb as User).id,
 			);
 
-			const result = await service.ifCategoryExistsReturnsItsId(
+			const result: number = await service.ifCategoryExistsReturnsItsId(
 				createdCategory.name,
-				userFromDb.id
+				(userFromDb as User).id,
 			);
 
 			expect(result).toEqual(createdCategory.id);
 		});
 		it('should return 0 if category not exists', async () => {
-			const result = await service.ifCategoryExistsReturnsItsId(
+			const result: number = await service.ifCategoryExistsReturnsItsId(
 				'NOT_EXISTING_CATEGORY',
-				4
+				500,
 			);
 
 			expect(result).toEqual(0);
