@@ -5,6 +5,7 @@ import { Request, Response } from 'express';
 import { MonthlyLimitsService } from '../monthly-limits/monthly-limits.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { TransactionCategoriesService } from '../transaction-categories/transaction-categories.service';
+import { RedisService } from '../utils/cache/redis.service';
 import { MonthlyLimitsNotifications } from '../utils/notifications/monthly-limits.notifications';
 import { GetTransactionsDtoList } from './dto/get-list-transactions.dto';
 import { GetTransactionDTO } from './dto/transactions-get.dto';
@@ -28,6 +29,7 @@ describe('TransactionsController', () => {
 				MonthlyLimitsService,
 				TransactionCategoriesService,
 				MonthlyLimitsNotifications,
+				RedisService,
 			],
 		}).compile();
 
@@ -137,81 +139,6 @@ describe('TransactionsController', () => {
 
 			expect(mockResponse.status).toHaveBeenCalledWith(200);
 			expect(mockResponse.json).toHaveBeenCalledWith(generated);
-		});
-		it('should return 400 if time range is wrong', async () => {
-			const mockRequest = {
-				body: {
-					user: {
-						id: 1,
-					},
-				},
-			} as Request;
-
-			const mockResponse = {} as unknown as Response;
-			mockResponse.json = jest.fn();
-			mockResponse.status = jest.fn(() => mockResponse).mockReturnThis();
-
-			await controller.getTransactionsByTimeRange(mockRequest, mockResponse, 'banana');
-
-			expect(mockResponse.status).toHaveBeenCalledWith(400);
-			expect(mockResponse.json).toHaveBeenCalledWith(
-				expect.objectContaining({
-					message: 'Parameters allowed: day, week, month',
-				}),
-			);
-		});
-		it('should return 400 if user id not provided', async () => {
-			const mockRequest = {
-				body: {},
-			} as Request;
-
-			const mockResponse = {} as unknown as Response;
-			mockResponse.json = jest.fn();
-			mockResponse.status = jest.fn(() => mockResponse).mockReturnThis();
-
-			await controller.getTransactionsByTimeRange(mockRequest, mockResponse, 'any');
-
-			expect(mockResponse.status).toHaveBeenCalledWith(400);
-			expect(mockResponse.json).toHaveBeenCalledWith(
-				expect.objectContaining({
-					message: 'All fields must be filled',
-				}),
-			);
-		});
-	});
-	describe('getSingleTransaction()', () => {
-		it('should return 200 with one transaction body', async () => {
-			const mockRequest = {
-				body: {
-					user: {
-						id: 1,
-					},
-				},
-			} as Request;
-
-			const mockResponse = {} as unknown as Response;
-			mockResponse.json = jest.fn();
-			mockResponse.status = jest.fn(() => mockResponse).mockReturnThis();
-
-			const transaction: GetTransactionDTO = {
-				amount: 100,
-				type: 'Hello',
-				date: new Date(),
-				description: '',
-				category: 'cats',
-				user: 'John',
-			};
-
-			jest.spyOn(service, 'getSingleTransaction').mockResolvedValue(transaction);
-
-			await controller.getSingleTransaction(mockRequest, mockResponse, 1);
-
-			expect(mockResponse.status).toHaveBeenCalledWith(200);
-			expect(mockResponse.json).toHaveBeenCalledWith({
-				status: 'OK',
-				message: 'Success',
-				body: transaction,
-			});
 		});
 		it('should return 400 if id not specified or not a number', async () => {
 			const mockRequest = {

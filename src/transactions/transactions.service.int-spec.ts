@@ -1,11 +1,12 @@
 import { JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
 import { Transaction, TransactionCategory, User } from '@prisma/client';
-import { UserRegisterDto } from 'src/auth/dtos/user-register.dto';
 import { AuthService } from '../auth/auth.service';
+import { UserRegisterDto } from '../auth/dtos/user-register.dto';
 import { MonthlyLimitsService } from '../monthly-limits/monthly-limits.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { TransactionCategoriesService } from '../transaction-categories/transaction-categories.service';
+import { RedisService } from '../utils/cache/redis.service';
 import { MonthlyLimitsNotifications } from '../utils/notifications/monthly-limits.notifications';
 import { GetTransactionsDtoList } from './dto/get-list-transactions.dto';
 import { GetTransactionDTO } from './dto/transactions-get.dto';
@@ -30,6 +31,15 @@ describe('TransactionsService', () => {
 				TransactionsMapper,
 				MonthlyLimitsService,
 				MonthlyLimitsNotifications,
+				{
+					provide: RedisService,
+					useValue: {
+						doConnect: jest.fn().mockResolvedValue(null),
+						getValueFromCache: jest.fn().mockResolvedValue(null),
+						setValueToCache: jest.fn().mockResolvedValue(null),
+						deleteValueFromCache: jest.fn().mockResolvedValue(null),
+					},
+				},
 			],
 		}).compile();
 

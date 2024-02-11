@@ -1,9 +1,10 @@
 import { HttpException, Injectable } from '@nestjs/common';
 import { Transaction, TransactionCategory, TransactionType, User } from '@prisma/client';
-import { TimeRangeDto } from 'src/utils/timerange/dtos/timerange.dto';
 import { MonthlyLimitsService } from '../monthly-limits/monthly-limits.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { TransactionCategoriesService } from '../transaction-categories/transaction-categories.service';
+import { RedisService } from '../utils/cache/redis.service';
+import { TimeRangeDto } from '../utils/timerange/dtos/timerange.dto';
 import { getTimeRangeStartAndEnd } from '../utils/timerange/timeRange.func';
 import { GetTransactionsDtoList } from './dto/get-list-transactions.dto';
 import { GetTransactionDTO } from './dto/transactions-get.dto';
@@ -17,6 +18,7 @@ export class TransactionsService {
 		private mapper: TransactionsMapper,
 		private categoriesService: TransactionCategoriesService,
 		private mLimitService: MonthlyLimitsService,
+		private redis: RedisService,
 	) {}
 
 	async addNewTransaction(user_id: number, trDto: TransactionsDto): Promise<Transaction> {
@@ -54,6 +56,10 @@ export class TransactionsService {
 			},
 		});
 
+		await this.redis.setValueToCache(`${addedTransaction.id}`, JSON.stringify(addedTransaction));
+
+		await this.resetAllCachedLists(user_id);
+
 		await this.mLimitService.addExpenseToLimitTotalIfExists(addedTransaction.amount, user_id);
 
 		await this.mLimitService.ifLimitReachedSendAnEmail(user);
@@ -64,31 +70,41 @@ export class TransactionsService {
 	}
 
 	async getSingleTransaction(id: number, user_id: number): Promise<GetTransactionDTO> {
-		const candidate: Transaction = <Transaction>(
-			await this.prisma.transaction.findUnique({ where: { id: id } })
+		let transactionModel: GetTransactionDTO = JSON.parse(
+			<string>await this.redis.getValueFromCache(`${user_id}: ${id}`),
 		);
 
-		if (!candidate) {
-			throw new HttpException('No objects found', 404);
+		if (!transactionModel) {
+			const transaction = <Transaction>(
+				await this.prisma.transaction.findUnique({ where: { id: id } })
+			);
+
+			if (!transaction) {
+				throw new HttpException('No objects found', 404);
+			}
+
+			if (transaction.user_id !== user_id) {
+				throw new HttpException('Access not allowed', 401);
+			}
+
+			const type: TransactionType = <TransactionType>(
+				await this.prisma.transactionType.findUnique({ where: { id: transaction.type_id } })
+			);
+
+			const user: User = <User>(
+				await this.prisma.user.findUnique({ where: { id: transaction.user_id } })
+			);
+
+			const category: TransactionCategory = <TransactionCategory>(
+				await this.prisma.transactionCategory.findUnique({ where: { id: transaction.category_id } })
+			);
+
+			transactionModel = this.mapper.mapTransactionToModel(transaction, user, category, type.name);
+
+			await this.redis.setValueToCache(`${user_id}: ${id}`, JSON.stringify(transactionModel));
 		}
 
-		if (candidate.user_id !== user_id) {
-			throw new HttpException('Access not allowed', 401);
-		}
-
-		const type: TransactionType = <TransactionType>(
-			await this.prisma.transactionType.findUnique({ where: { id: candidate.type_id } })
-		);
-
-		const user: User = <User>(
-			await this.prisma.user.findUnique({ where: { id: candidate.user_id } })
-		);
-
-		const category: TransactionCategory = <TransactionCategory>(
-			await this.prisma.transactionCategory.findUnique({ where: { id: candidate.category_id } })
-		);
-
-		return this.mapper.mapTransactionToModel(candidate, user, category, type.name);
+		return transactionModel;
 	}
 
 	async removeTransaction(id: number, user_id: number): Promise<Transaction> {
@@ -105,6 +121,9 @@ export class TransactionsService {
 		}
 
 		const deleted: Transaction = await this.prisma.transaction.delete({ where: { id: id } });
+
+		await this.redis.deleteValueFromCache(`${user_id}: ${id}`);
+		await this.resetAllCachedLists(user_id);
 
 		await this.mLimitService.removeExpenseFromLimitTotalIfExists(deleted.amount, user_id);
 
@@ -144,6 +163,12 @@ export class TransactionsService {
 			data: { category_id: categoryCandidateId },
 		});
 
+		await this.redis.deleteValueFromCache(`${user_id}: ${changed.id}`);
+
+		await this.resetAllCachedLists(user_id);
+
+		await this.redis.setValueToCache(`${user_id}: ${changed.id}`, JSON.stringify(changed));
+
 		console.log(`Transaction category change for transaction ${changed.id}`);
 
 		return changed;
@@ -159,30 +184,46 @@ export class TransactionsService {
 			throw new HttpException('Parameters allowed: day, week, month', 400);
 		}
 
-		const user: User = <User>await this.prisma.user.findUnique({ where: { id: user_id } });
-
-		if (!user) {
-			throw new HttpException('User not found', 404);
-		}
-
-		const candidates: Transaction[] = await this.prisma.transaction.findMany({
-			where: {
-				user_id: user.id,
-				date: {
-					gte: timeRangeDto.startOfTime.toISOString(),
-					lte: timeRangeDto.endOfTime.toISOString(),
-				},
-			},
-		});
-
-		const listOfTransactions: GetTransactionsDtoList =
-			await this.mapper.mapTransactionListToJSONModelList(candidates, user);
-
-		console.log(
-			`${candidates.length} transactions found by time range ${timeRangeDto.startOfTime} : ${timeRangeDto.endOfTime}`,
+		let transactionDtoList: GetTransactionsDtoList = JSON.parse(
+			<string>await this.redis.getValueFromCache(`${user_id}: ${timeRange}`),
 		);
 
-		return listOfTransactions;
+		if (!transactionDtoList) {
+			console.log('LOG: transactionList not found in cache');
+
+			const user: User = <User>await this.prisma.user.findUnique({ where: { id: user_id } });
+
+			if (!user) {
+				throw new HttpException('User not found', 404);
+			}
+
+			const transactionList = await this.prisma.transaction.findMany({
+				where: {
+					user_id: user.id,
+					date: {
+						gte: timeRangeDto.startOfTime.toISOString(),
+						lte: timeRangeDto.endOfTime.toISOString(),
+					},
+				},
+			});
+
+			transactionDtoList = await this.mapper.mapTransactionListToJSONModelList(
+				transactionList,
+				user,
+			);
+
+			await this.redis.setValueToCache(
+				`${user.id}: ${timeRange}`,
+				JSON.stringify(transactionDtoList),
+			);
+		}
+
+		console.log(
+			`${transactionDtoList.transactions.length} transactions found by time range ${timeRangeDto.startOfTime} : ` +
+				`${timeRangeDto.endOfTime}`,
+		);
+
+		return transactionDtoList;
 	}
 
 	private validateTransactionTypeOrThrow(type: string): string {
@@ -193,5 +234,14 @@ export class TransactionsService {
 		} else {
 			throw new HttpException('Incorrect transaction type (EXPENSE, INCOME)', 400);
 		}
+	}
+
+	private async resetAllCachedLists(user_id: number) {
+		//for timeRange
+		await this.redis.deleteValueFromCache(`${user_id}: day`);
+		await this.redis.deleteValueFromCache(`${user_id}: week`);
+		await this.redis.deleteValueFromCache(`${user_id}: month`);
+
+		//TODO: reset cache also for category
 	}
 }
