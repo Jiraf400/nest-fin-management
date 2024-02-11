@@ -39,7 +39,7 @@ export class TransactionsService {
 			throw new HttpException('User not found', 404);
 		}
 
-		const addedTransaction: Transaction = await this.prisma.transaction.create({
+		const transaction: Transaction = await this.prisma.transaction.create({
 			data: {
 				amount: trDto.amount,
 				description: trDto.description,
@@ -56,22 +56,25 @@ export class TransactionsService {
 			},
 		});
 
-		await this.redis.setValueToCache(`${addedTransaction.id}`, JSON.stringify(addedTransaction));
+		await this.redis.setValueToCache(
+			`app:${user_id}:${transaction.id}`,
+			JSON.stringify(transaction),
+		);
 
-		await this.resetAllCachedLists(user_id, addedTransaction.category_id);
+		await this.resetAllCachedLists(user_id, transaction.category_id);
 
-		await this.mLimitService.addExpenseToLimitTotalIfExists(addedTransaction.amount, user_id);
+		await this.mLimitService.addExpenseToLimitTotalIfExists(transaction.amount, user_id);
 
 		await this.mLimitService.ifLimitReachedSendAnEmail(user);
 
-		console.log(`create transaction ${addedTransaction.id}`);
+		console.log(`create transaction ${transaction.id}`);
 
-		return addedTransaction;
+		return transaction;
 	}
 
 	async getSingleTransaction(id: number, user_id: number): Promise<GetTransactionDTO> {
 		let transactionModel: GetTransactionDTO = JSON.parse(
-			<string>await this.redis.getValueFromCache(`${user_id}: ${id}`),
+			<string>await this.redis.getValueFromCache(`app:${user_id}:${id}`),
 		);
 
 		if (!transactionModel) {
@@ -87,21 +90,9 @@ export class TransactionsService {
 				throw new HttpException('Access not allowed', 401);
 			}
 
-			const type: TransactionType = <TransactionType>(
-				await this.prisma.transactionType.findUnique({ where: { id: transaction.type_id } })
-			);
+			transactionModel = await this.fetchRelatedEntitiesAndMapToModel(transaction);
 
-			const user: User = <User>(
-				await this.prisma.user.findUnique({ where: { id: transaction.user_id } })
-			);
-
-			const category: TransactionCategory = <TransactionCategory>(
-				await this.prisma.transactionCategory.findUnique({ where: { id: transaction.category_id } })
-			);
-
-			transactionModel = this.mapper.mapTransactionToModel(transaction, user, category, type.name);
-
-			await this.redis.setValueToCache(`${user_id}: ${id}`, JSON.stringify(transactionModel));
+			await this.redis.setValueToCache(`app:${user_id}:${id}`, JSON.stringify(transactionModel));
 		}
 
 		return transactionModel;
@@ -122,7 +113,7 @@ export class TransactionsService {
 
 		const deleted: Transaction = await this.prisma.transaction.delete({ where: { id: id } });
 
-		await this.redis.deleteValueFromCache(`${user_id}: ${id}`);
+		await this.redis.deleteValueFromCache(`app:${user_id}:${id}`);
 
 		await this.resetAllCachedLists(user_id, deleted.category_id);
 
@@ -164,11 +155,11 @@ export class TransactionsService {
 			data: { category_id: categoryCandidateId },
 		});
 
-		await this.redis.deleteValueFromCache(`${user_id}: ${changed.id}`);
+		await this.redis.deleteValueFromCache(`app:${user_id}:${changed.id}`);
 
 		await this.resetAllCachedLists(user_id, changed.category_id);
 
-		await this.redis.setValueToCache(`${user_id}: ${changed.id}`, JSON.stringify(changed));
+		await this.redis.setValueToCache(`app:${user_id}:${changed.id}`, JSON.stringify(changed));
 
 		console.log(`Transaction category change for transaction ${changed.id}`);
 
@@ -186,7 +177,7 @@ export class TransactionsService {
 		}
 
 		let transactionDtoList: GetTransactionsDtoList = JSON.parse(
-			<string>await this.redis.getValueFromCache(`${user_id}: ${timeRange}`),
+			<string>await this.redis.getValueFromCache(`app:${user_id}:timerange:${timeRange}`),
 		);
 
 		if (!transactionDtoList) {
@@ -214,7 +205,7 @@ export class TransactionsService {
 			);
 
 			await this.redis.setValueToCache(
-				`${user.id}: ${timeRange}`,
+				`app:${user_id}:timerange:${timeRange}`,
 				JSON.stringify(transactionDtoList),
 			);
 		}
@@ -228,8 +219,6 @@ export class TransactionsService {
 	}
 
 	async getTransactionsByCategory(user_id: number, category: string) {
-		category = category.toUpperCase().trim();
-
 		const categoryId: number = await this.categoriesService.ifCategoryExistsReturnsItsId(
 			category,
 			user_id,
@@ -240,7 +229,7 @@ export class TransactionsService {
 		}
 
 		let transactionDtoList: GetTransactionsDtoList = JSON.parse(
-			<string>await this.redis.getValueFromCache(`${user_id}: ct ${categoryId}`),
+			<string>await this.redis.getValueFromCache(`app:${user_id}:category:${categoryId}`),
 		);
 
 		if (!transactionDtoList) {
@@ -265,12 +254,34 @@ export class TransactionsService {
 			);
 
 			await this.redis.setValueToCache(
-				`${user_id}: ct ${categoryId}`,
+				`app:${user_id}:category:${categoryId}`,
 				JSON.stringify(transactionDtoList),
 			);
 		}
 
 		return transactionDtoList;
+	}
+
+	private async fetchRelatedEntitiesAndMapToModel(
+		transaction: Transaction,
+	): Promise<GetTransactionDTO> {
+		const type: TransactionType = <TransactionType>(
+			await this.prisma.transactionType.findUnique({ where: { id: transaction.type_id } })
+		);
+
+		const user: User = <User>(
+			await this.prisma.user.findUnique({ where: { id: transaction.user_id } })
+		);
+
+		const category: TransactionCategory = <TransactionCategory>(
+			await this.prisma.transactionCategory.findUnique({ where: { id: transaction.category_id } })
+		);
+
+		if (!type || !user || !category) {
+			throw new HttpException('Some related entities not found', 404);
+		}
+
+		return this.mapper.mapTransactionToModel(transaction, user, category, type);
 	}
 
 	private validateTransactionTypeOrThrow(type: string): string {
@@ -283,13 +294,11 @@ export class TransactionsService {
 		}
 	}
 
-	private async resetAllCachedLists(user_id: number, category_id?: number) {
-		//for timeRange
-		await this.redis.deleteValueFromCache(`${user_id}: day`);
-		await this.redis.deleteValueFromCache(`${user_id}: week`);
-		await this.redis.deleteValueFromCache(`${user_id}: month`);
+	private async resetAllCachedLists(user_id: number, category_id: number) {
+		await this.redis.deleteValueFromCache(`app:${user_id}:timerange:day`);
+		await this.redis.deleteValueFromCache(`app:${user_id}:timerange:week`);
+		await this.redis.deleteValueFromCache(`app:${user_id}:timerange:month`);
 
-		//for categories
-		await this.redis.deleteValueFromCache(`${user_id}: ct ${category_id}`);
+		await this.redis.deleteValueFromCache(`app:${user_id}:category:${category_id}`);
 	}
 }
