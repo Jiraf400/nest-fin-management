@@ -4,7 +4,6 @@ import * as nodemailer from 'nodemailer';
 @Injectable()
 export class MonthlyLimitsNotifications {
 	sendLimitReachedEmail(userName: string, userEmail: string) {
-		console.log(`email sent`);
 		const transporter = this.createTransport(
 			`${process.env.EMAIL_FROM}`,
 			`${process.env.EMAIL_APP_PASSWORD}`,

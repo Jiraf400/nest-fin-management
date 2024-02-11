@@ -1,5 +1,5 @@
 export enum TimeRangeEnum {
-  DAY = 'DAY',
-  WEEK = 'WEEK',
-  MONTH = 'MONTH',
+	DAY = 'DAY',
+	WEEK = 'WEEK',
+	MONTH = 'MONTH',
 }

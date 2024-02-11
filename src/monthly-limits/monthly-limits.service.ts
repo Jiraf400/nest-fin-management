@@ -128,7 +128,7 @@ export class MonthlyLimitsService {
 			data: { total_expenses: candidate.total_expenses - expense_amount },
 		});
 
-		console.log(`change limit by adding expense amount ${expense_amount}`);
+		console.log(`change user ${user_id} limit by removing expense amount ${expense_amount}`);
 
 		return changeLimit;
 	}
