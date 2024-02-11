@@ -58,7 +58,7 @@ export class TransactionsService {
 
 		await this.redis.setValueToCache(`${addedTransaction.id}`, JSON.stringify(addedTransaction));
 
-		await this.resetAllCachedLists(user_id);
+		await this.resetAllCachedLists(user_id, addedTransaction.category_id);
 
 		await this.mLimitService.addExpenseToLimitTotalIfExists(addedTransaction.amount, user_id);
 
@@ -123,7 +123,8 @@ export class TransactionsService {
 		const deleted: Transaction = await this.prisma.transaction.delete({ where: { id: id } });
 
 		await this.redis.deleteValueFromCache(`${user_id}: ${id}`);
-		await this.resetAllCachedLists(user_id);
+
+		await this.resetAllCachedLists(user_id, deleted.category_id);
 
 		await this.mLimitService.removeExpenseFromLimitTotalIfExists(deleted.amount, user_id);
 
@@ -165,7 +166,7 @@ export class TransactionsService {
 
 		await this.redis.deleteValueFromCache(`${user_id}: ${changed.id}`);
 
-		await this.resetAllCachedLists(user_id);
+		await this.resetAllCachedLists(user_id, changed.category_id);
 
 		await this.redis.setValueToCache(`${user_id}: ${changed.id}`, JSON.stringify(changed));
 
@@ -189,7 +190,7 @@ export class TransactionsService {
 		);
 
 		if (!transactionDtoList) {
-			console.log('LOG: transactionList not found in cache');
+			console.log(`LOG: transactionList not found in cache by timerange ${timeRange}`);
 
 			const user: User = <User>await this.prisma.user.findUnique({ where: { id: user_id } });
 
@@ -226,6 +227,52 @@ export class TransactionsService {
 		return transactionDtoList;
 	}
 
+	async getTransactionsByCategory(user_id: number, category: string) {
+		category = category.toUpperCase().trim();
+
+		const categoryId: number = await this.categoriesService.ifCategoryExistsReturnsItsId(
+			category,
+			user_id,
+		);
+
+		if (categoryId === 0) {
+			throw new HttpException('No categories found. Please create new category', 404);
+		}
+
+		let transactionDtoList: GetTransactionsDtoList = JSON.parse(
+			<string>await this.redis.getValueFromCache(`${user_id}: ct ${categoryId}`),
+		);
+
+		if (!transactionDtoList) {
+			console.log(`LOG: transactionList not found in cache by category ${categoryId}`);
+
+			const user: User = <User>await this.prisma.user.findUnique({ where: { id: user_id } });
+
+			if (!user) {
+				throw new HttpException('User not found', 404);
+			}
+
+			const transactionList = await this.prisma.transaction.findMany({
+				where: {
+					user_id: user.id,
+					category: { name: category },
+				},
+			});
+
+			transactionDtoList = await this.mapper.mapTransactionListToJSONModelList(
+				transactionList,
+				user,
+			);
+
+			await this.redis.setValueToCache(
+				`${user_id}: ct ${categoryId}`,
+				JSON.stringify(transactionDtoList),
+			);
+		}
+
+		return transactionDtoList;
+	}
+
 	private validateTransactionTypeOrThrow(type: string): string {
 		type = type.toUpperCase().trim();
 
@@ -236,12 +283,13 @@ export class TransactionsService {
 		}
 	}
 
-	private async resetAllCachedLists(user_id: number) {
+	private async resetAllCachedLists(user_id: number, category_id?: number) {
 		//for timeRange
 		await this.redis.deleteValueFromCache(`${user_id}: day`);
 		await this.redis.deleteValueFromCache(`${user_id}: week`);
 		await this.redis.deleteValueFromCache(`${user_id}: month`);
 
-		//TODO: reset cache also for category
+		//for categories
+		await this.redis.deleteValueFromCache(`${user_id}: ct ${category_id}`);
 	}
 }

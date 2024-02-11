@@ -51,13 +51,15 @@ export class TransactionsController {
 		});
 	}
 
-	@Get('find-by/:timeRange')
+	@Get('find-by/timerange/:timeRange')
 	async getTransactionsByTimeRange(
 		@Req() req: Request,
 		@Res() res: Response,
 		@Param('timeRange') timeRange: string,
 	): Promise<Response> {
 		const requestUser: UserFromToken = req.body.user;
+
+		timeRange = timeRange.toUpperCase().trim();
 
 		if (!requestUser) {
 			return res.status(400).json({ message: 'All fields must be filled' });
@@ -66,6 +68,28 @@ export class TransactionsController {
 		const transactions = await this.transactionService.getTransactionsByTimeRange(
 			requestUser.id,
 			timeRange,
+		);
+
+		return res.status(200).json(transactions);
+	}
+
+	@Get('find-by/category/:category')
+	async getTransactionsByCategory(
+		@Req() req: Request,
+		@Res() res: Response,
+		@Param('category') category: string,
+	): Promise<Response> {
+		const requestUser: UserFromToken = req.body.user;
+
+		category = category.toUpperCase().trim();
+
+		if (!requestUser) {
+			return res.status(400).json({ message: 'All fields must be filled' });
+		}
+
+		const transactions = await this.transactionService.getTransactionsByCategory(
+			requestUser.id,
+			category,
 		);
 
 		return res.status(200).json(transactions);
