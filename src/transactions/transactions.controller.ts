@@ -77,9 +77,9 @@ export class TransactionsController {
 		@Res() res: Response,
 		@Param('id', ParseIntPipe) id: number,
 	) {
-		const userFromRequest = req.body.user;
+		const requestUser: UserFromToken = req.body.user;
 
-		if (!userFromRequest) {
+		if (!requestUser) {
 			return res.status(400).json({ message: 'All fields must be filled' });
 		}
 
@@ -87,7 +87,7 @@ export class TransactionsController {
 			return res.status(400).json({ message: 'Id field required.' });
 		}
 
-		const transaction = await this.transactionService.getSingleTransaction(id, userFromRequest.sub);
+		const transaction = await this.transactionService.getSingleTransaction(id, requestUser.id);
 
 		return res.status(200).json({ status: 'OK', message: 'Success', body: transaction });
 	}
@@ -99,9 +99,9 @@ export class TransactionsController {
 		@Body() category: CreateCategoryDTO,
 		@Param('id', ParseIntPipe) id: number,
 	) {
-		const userFromRequest = req.body.user;
+		const requestUser: UserFromToken = req.body.user;
 
-		if (!userFromRequest) {
+		if (!requestUser) {
 			return res.status(400).json({ message: 'All fields must be filled' });
 		}
 
@@ -112,7 +112,7 @@ export class TransactionsController {
 		const changed = await this.transactionService.changeTransactionCategory(
 			category.name,
 			id,
-			userFromRequest.sub,
+			requestUser.id,
 		);
 
 		return res.status(200).json({
@@ -127,9 +127,9 @@ export class TransactionsController {
 		@Res() res: Response,
 		@Param('id', ParseIntPipe) id: number,
 	) {
-		const userFromRequest = req.body.user;
+		const requestUser: UserFromToken = req.body.user;
 
-		if (!userFromRequest) {
+		if (!requestUser) {
 			return res.status(400).json({ message: 'All fields must be filled' });
 		}
 
@@ -137,7 +137,7 @@ export class TransactionsController {
 			return res.status(400).json({ message: 'Id field required.' });
 		}
 
-		const deleted = await this.transactionService.removeTransaction(id, userFromRequest.sub);
+		const deleted = await this.transactionService.removeTransaction(id, requestUser.id);
 
 		return res.status(200).json({
 			status: 'OK',
