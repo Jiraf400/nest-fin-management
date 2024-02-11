@@ -21,7 +21,6 @@ describe('AuthController', () => {
 		authService = module.get<AuthService>(AuthService);
 		authController = module.get<AuthController>(AuthController);
 		prisma = module.get<PrismaService>(PrismaService);
-		await prisma.cleanDatabase(prisma.user);
 	});
 
 	it('should be defined', () => {
@@ -59,7 +58,7 @@ describe('AuthController', () => {
 					status: 'OK',
 					message: 'Successfully register new user',
 					body: createdUser,
-				})
+				}),
 			);
 		});
 		it('should return 400 on checking if all fields filled', async () => {
@@ -78,7 +77,7 @@ describe('AuthController', () => {
 			expect(mockResponse.json).toHaveBeenCalledWith(
 				expect.objectContaining({
 					message: 'All fields must be filled.',
-				})
+				}),
 			);
 		});
 	});
@@ -122,7 +121,7 @@ describe('AuthController', () => {
 			expect(mockResponse.json).toHaveBeenCalledWith(
 				expect.objectContaining({
 					message: 'All fields must be filled.',
-				})
+				}),
 			);
 		});
 	});
