@@ -263,23 +263,37 @@ export class TransactionsService {
 	}
 
 	async getTransactionsBySearchQuery(user_id: number, query: string) {
-		console.log(`LOG: transactionList not found in cache by query ${query}`);
+		let transactionDtoList: GetTransactionsDtoList = JSON.parse(
+			<string>await this.redis.getValueFromCache(`app:${user_id}:query:${query}`),
+		);
 
-		const user: User = <User>await this.prisma.user.findUnique({ where: { id: user_id } });
+		if (!transactionDtoList) {
+			console.log(`LOG: transactionList not found in cache by query ${query}`);
 
-		if (!user) {
-			throw new HttpException('User not found', 404);
+			const user: User = <User>await this.prisma.user.findUnique({ where: { id: user_id } });
+
+			if (!user) {
+				throw new HttpException('User not found', 404);
+			}
+
+			const transactionList = await this.prisma.transaction.findMany({
+				where: {
+					user_id: user.id,
+					description: { contains: query },
+				},
+			});
+
+			transactionDtoList = await this.mapper.mapTransactionListToJSONModelList(
+				transactionList,
+				user,
+			);
+
+			await this.redis.setValueToCacheWithTTL(
+				`app:${user_id}:query:${query}`,
+				JSON.stringify(transactionDtoList),
+				40,
+			);
 		}
-
-		const transactionList = await this.prisma.transaction.findMany({
-			where: {
-				user_id: user.id,
-				description: { contains: query },
-			},
-		});
-
-		const transactionDtoList: GetTransactionsDtoList =
-			await this.mapper.mapTransactionListToJSONModelList(transactionList, user);
 
 		return transactionDtoList;
 	}

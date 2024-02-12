@@ -32,6 +32,10 @@ export class RedisService {
 		return this.client.set(key, value);
 	}
 
+	async setValueToCacheWithTTL(key: string, value: string, ttlInSec: number) {
+		return this.client.set(key, value, { EX: ttlInSec });
+	}
+
 	async deleteValueFromCache(key: string) {
 		return this.client.del(key);
 	}
