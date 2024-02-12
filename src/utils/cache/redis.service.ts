@@ -24,19 +24,7 @@ export class RedisService {
 		this.client.connect();
 	}
 
-	async getValueFromCache(key: string) {
-		return this.client.get(key);
-	}
-
-	async setValueToCache(key: string, value: string) {
-		return this.client.set(key, value);
-	}
-
-	async setValueToCacheWithTTL(key: string, value: string, ttlInSec: number) {
-		return this.client.set(key, value, { EX: ttlInSec });
-	}
-
-	async deleteValueFromCache(key: string) {
-		return this.client.del(key);
+	public get getClient(): RedisClientType {
+		return this.client;
 	}
 }

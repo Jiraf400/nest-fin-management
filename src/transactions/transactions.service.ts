@@ -3,13 +3,13 @@ import { Transaction, TransactionCategory, TransactionType, User } from '@prisma
 import { MonthlyLimitsService } from '../monthly-limits/monthly-limits.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { TransactionCategoriesService } from '../transaction-categories/transaction-categories.service';
-import { RedisService } from '../utils/cache/redis.service';
 import { TimeRangeDto } from '../utils/timerange/dtos/timerange.dto';
 import { getTimeRangeStartAndEnd } from '../utils/timerange/timeRange.func';
 import { GetTransactionsDtoList } from './dto/get-list-transactions.dto';
 import { GetTransactionDTO } from './dto/transactions-get.dto';
 import { TransactionsDto } from './dto/transactions.dto';
 import { TransactionsMapper } from './mappers/transactions.mapper';
+import { TransactionRedisHelper } from './related/transaction-cache.helper';
 
 @Injectable()
 export class TransactionsService {
@@ -18,7 +18,7 @@ export class TransactionsService {
 		private mapper: TransactionsMapper,
 		private categoriesService: TransactionCategoriesService,
 		private mLimitService: MonthlyLimitsService,
-		private redis: RedisService,
+		private redis: TransactionRedisHelper,
 	) {}
 
 	async addNewTransaction(user_id: number, trDto: TransactionsDto): Promise<Transaction> {
@@ -56,12 +56,12 @@ export class TransactionsService {
 			},
 		});
 
-		await this.redis.setValueToCache(
+		await this.redis.setTransactionsToCache(
 			`app:${user_id}:${transaction.id}`,
 			JSON.stringify(transaction),
 		);
 
-		await this.resetAllCachedLists(user_id, transaction.category_id);
+		await this.redis.resetAllCachedLists(user_id, transaction.category_id);
 
 		await this.mLimitService.addExpenseToLimitTotalIfExists(transaction.amount, user_id);
 
@@ -74,7 +74,7 @@ export class TransactionsService {
 
 	async getSingleTransaction(id: number, user_id: number): Promise<GetTransactionDTO> {
 		let transactionModel: GetTransactionDTO = JSON.parse(
-			<string>await this.redis.getValueFromCache(`app:${user_id}:${id}`),
+			<string>await this.redis.getTransactionsFromCache(`app:${user_id}:${id}`),
 		);
 
 		if (!transactionModel) {
@@ -92,7 +92,10 @@ export class TransactionsService {
 
 			transactionModel = await this.fetchRelatedEntitiesAndMapToModel(transaction);
 
-			await this.redis.setValueToCache(`app:${user_id}:${id}`, JSON.stringify(transactionModel));
+			await this.redis.setTransactionsToCache(
+				`app:${user_id}:${id}`,
+				JSON.stringify(transactionModel),
+			);
 		}
 
 		return transactionModel;
@@ -113,9 +116,9 @@ export class TransactionsService {
 
 		const deleted: Transaction = await this.prisma.transaction.delete({ where: { id: id } });
 
-		await this.redis.deleteValueFromCache(`app:${user_id}:${id}`);
+		await this.redis.deleteTransactionsFromCache(`app:${user_id}:${id}`);
 
-		await this.resetAllCachedLists(user_id, deleted.category_id);
+		await this.redis.resetAllCachedLists(user_id, deleted.category_id);
 
 		await this.mLimitService.removeExpenseFromLimitTotalIfExists(deleted.amount, user_id);
 
@@ -155,11 +158,14 @@ export class TransactionsService {
 			data: { category_id: categoryCandidateId },
 		});
 
-		await this.redis.deleteValueFromCache(`app:${user_id}:${changed.id}`);
+		await this.redis.deleteTransactionsFromCache(`app:${user_id}:${changed.id}`);
 
-		await this.resetAllCachedLists(user_id, changed.category_id);
+		await this.redis.resetAllCachedLists(user_id, changed.category_id);
 
-		await this.redis.setValueToCache(`app:${user_id}:${changed.id}`, JSON.stringify(changed));
+		await this.redis.setTransactionsToCache(
+			`app:${user_id}:${changed.id}`,
+			JSON.stringify(changed),
+		);
 
 		console.log(`Transaction category change for transaction ${changed.id}`);
 
@@ -177,7 +183,7 @@ export class TransactionsService {
 		}
 
 		let transactionDtoList: GetTransactionsDtoList = JSON.parse(
-			<string>await this.redis.getValueFromCache(`app:${user_id}:timerange:${timeRange}`),
+			<string>await this.redis.getTransactionsFromCache(`app:${user_id}:timerange:${timeRange}`),
 		);
 
 		if (!transactionDtoList) {
@@ -204,7 +210,7 @@ export class TransactionsService {
 				user,
 			);
 
-			await this.redis.setValueToCache(
+			await this.redis.setTransactionsToCache(
 				`app:${user_id}:timerange:${timeRange}`,
 				JSON.stringify(transactionDtoList),
 			);
@@ -229,7 +235,7 @@ export class TransactionsService {
 		}
 
 		let transactionDtoList: GetTransactionsDtoList = JSON.parse(
-			<string>await this.redis.getValueFromCache(`app:${user_id}:category:${categoryId}`),
+			<string>await this.redis.getTransactionsFromCache(`app:${user_id}:category:${categoryId}`),
 		);
 
 		if (!transactionDtoList) {
@@ -253,7 +259,7 @@ export class TransactionsService {
 				user,
 			);
 
-			await this.redis.setValueToCache(
+			await this.redis.setTransactionsToCache(
 				`app:${user_id}:category:${categoryId}`,
 				JSON.stringify(transactionDtoList),
 			);
@@ -264,7 +270,7 @@ export class TransactionsService {
 
 	async getTransactionsBySearchQuery(user_id: number, query: string) {
 		let transactionDtoList: GetTransactionsDtoList = JSON.parse(
-			<string>await this.redis.getValueFromCache(`app:${user_id}:query:${query}`),
+			<string>await this.redis.getTransactionsFromCache(`app:${user_id}:query:${query}`),
 		);
 
 		if (!transactionDtoList) {
@@ -288,7 +294,7 @@ export class TransactionsService {
 				user,
 			);
 
-			await this.redis.setValueToCacheWithTTL(
+			await this.redis.setTransactionsToCacheWithTTL(
 				`app:${user_id}:query:${query}`,
 				JSON.stringify(transactionDtoList),
 				40,
@@ -328,13 +334,5 @@ export class TransactionsService {
 		} else {
 			throw new HttpException('Incorrect transaction type (EXPENSE, INCOME)', 400);
 		}
-	}
-
-	private async resetAllCachedLists(user_id: number, category_id: number) {
-		await this.redis.deleteValueFromCache(`app:${user_id}:timerange:day`);
-		await this.redis.deleteValueFromCache(`app:${user_id}:timerange:week`);
-		await this.redis.deleteValueFromCache(`app:${user_id}:timerange:month`);
-
-		await this.redis.deleteValueFromCache(`app:${user_id}:category:${category_id}`);
 	}
 }

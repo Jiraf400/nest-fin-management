@@ -4,6 +4,7 @@ import { MonthlyLimitsModule } from '../monthly-limits/monthly-limits.module';
 import { PrismaService } from '../prisma/prisma.service';
 import { TransactionCategoriesService } from '../transaction-categories/transaction-categories.service';
 import { TransactionsMapper } from './mappers/transactions.mapper';
+import { TransactionRedisHelper } from './related/transaction-cache.helper';
 import { TransactionsController } from './transactions.controller';
 import { TransactionsService } from './transactions.service';
 
@@ -15,6 +16,7 @@ import { TransactionsService } from './transactions.service';
 		TransactionsMapper,
 		PrismaService,
 		RedisService,
+		TransactionRedisHelper,
 	],
 	imports: [MonthlyLimitsModule],
 })
