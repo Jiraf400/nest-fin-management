@@ -18,6 +18,7 @@ import { Request, Response } from 'express';
 import { UserFromToken } from 'src/utils/dtos/user-token.dto';
 import { AuthGuard } from '../auth/guard/auth.guard';
 import { CreateCategoryDTO } from '../transaction-categories/dto/create-category.dto';
+import { GetTransactionsDtoList } from './dto/get-list-transactions.dto';
 import { TransactionsDto } from './dto/transactions.dto';
 import { TransactionsService } from './transactions.service';
 
@@ -65,10 +66,8 @@ export class TransactionsController {
 			return res.status(400).json({ message: 'All fields must be filled' });
 		}
 
-		const transactions = await this.transactionService.getTransactionsByTimeRange(
-			requestUser.id,
-			timeRange,
-		);
+		const transactions: GetTransactionsDtoList =
+			await this.transactionService.getTransactionsByTimeRange(requestUser.id, timeRange);
 
 		return res.status(200).json(transactions);
 	}
@@ -87,9 +86,27 @@ export class TransactionsController {
 			return res.status(400).json({ message: 'All fields must be filled' });
 		}
 
-		const transactions = await this.transactionService.getTransactionsByCategory(
+		const transactions: GetTransactionsDtoList =
+			await this.transactionService.getTransactionsByCategory(requestUser.id, category);
+
+		return res.status(200).json(transactions);
+	}
+
+	@Get('find-by/query/:query')
+	async getTransactionsBySearchQuery(
+		@Req() req: Request,
+		@Res() res: Response,
+		@Param('query') query: string,
+	): Promise<Response> {
+		const requestUser: UserFromToken = req.body.user;
+
+		if (!requestUser) {
+			return res.status(400).json({ message: 'All fields must be filled' });
+		}
+
+		const transactions = await this.transactionService.getTransactionsBySearchQuery(
 			requestUser.id,
-			category,
+			query,
 		);
 
 		return res.status(200).json(transactions);

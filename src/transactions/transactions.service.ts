@@ -262,6 +262,28 @@ export class TransactionsService {
 		return transactionDtoList;
 	}
 
+	async getTransactionsBySearchQuery(user_id: number, query: string) {
+		console.log(`LOG: transactionList not found in cache by query ${query}`);
+
+		const user: User = <User>await this.prisma.user.findUnique({ where: { id: user_id } });
+
+		if (!user) {
+			throw new HttpException('User not found', 404);
+		}
+
+		const transactionList = await this.prisma.transaction.findMany({
+			where: {
+				user_id: user.id,
+				description: { contains: query },
+			},
+		});
+
+		const transactionDtoList: GetTransactionsDtoList =
+			await this.mapper.mapTransactionListToJSONModelList(transactionList, user);
+
+		return transactionDtoList;
+	}
+
 	private async fetchRelatedEntitiesAndMapToModel(
 		transaction: Transaction,
 	): Promise<GetTransactionDTO> {
