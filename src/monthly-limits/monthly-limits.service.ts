@@ -54,7 +54,7 @@ export class MonthlyLimitsService {
 		}
 
 		if (candidate.user_id !== user_id) {
-			throw new HttpException('Access not allowed', 401);
+			throw new HttpException('Access not allowed', 403);
 		}
 
 		const changeLimit: MonthlyLimit = await this.prisma.monthlyLimit.update({
@@ -77,7 +77,7 @@ export class MonthlyLimitsService {
 		}
 
 		if (candidate.user_id !== user_id) {
-			throw new HttpException('Access not allowed', 401);
+			throw new HttpException('Access not allowed', 403);
 		}
 
 		const deleteLimit: MonthlyLimit = await this.prisma.monthlyLimit.delete({

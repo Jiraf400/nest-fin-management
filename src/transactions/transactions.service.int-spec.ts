@@ -162,7 +162,7 @@ describe('TransactionsService', () => {
 
 				await service.getSingleTransaction(transaction.id, 5324);
 			} catch (error) {
-				expect(error.status).toBe(401);
+				expect(error.status).toBe(403);
 				expect(error.message).toBe('Access not allowed');
 			}
 		});
@@ -224,7 +224,7 @@ describe('TransactionsService', () => {
 
 				await service.removeTransaction(transaction.id, 5324);
 			} catch (error) {
-				expect(error.status).toBe(401);
+				expect(error.status).toBe(403);
 				expect(error.message).toBe('Access not allowed');
 			}
 		});
@@ -335,7 +335,7 @@ describe('TransactionsService', () => {
 
 				await service.changeTransactionCategory(category.name, transaction.id, anotherUser.id);
 			} catch (error) {
-				expect(error.status).toBe(401);
+				expect(error.status).toBe(403);
 				expect(error.message).toBe('Access not allowed');
 			}
 		});

@@ -10,7 +10,10 @@ export class TransactionCategoriesService {
 	async addNewCategory(category: CreateCategoryDTO, user_id: number): Promise<TransactionCategory> {
 		category.name = category.name.toUpperCase().trim();
 
-		const candidateCategoryId: number = await this.ifCategoryExistsReturnsItsId(category.name, user_id);
+		const candidateCategoryId: number = await this.ifCategoryExistsReturnsItsId(
+			category.name,
+			user_id,
+		);
 
 		if (candidateCategoryId !== 0) {
 			throw new HttpException('Category already exists', 400);
@@ -40,7 +43,7 @@ export class TransactionCategoriesService {
 		}
 
 		if (candidate.user_id !== user_id) {
-			throw new HttpException('Access not allowed', 401);
+			throw new HttpException('Access not allowed', 403);
 		}
 
 		const removed: TransactionCategory = await this.prisma.transactionCategory.delete({

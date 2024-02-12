@@ -87,7 +87,7 @@ export class TransactionsService {
 			}
 
 			if (transaction.user_id !== user_id) {
-				throw new HttpException('Access not allowed', 401);
+				throw new HttpException('Access not allowed', 403);
 			}
 
 			transactionModel = await this.fetchRelatedEntitiesAndMapToModel(transaction);
@@ -108,7 +108,7 @@ export class TransactionsService {
 		}
 
 		if (candidate.user_id !== user_id) {
-			throw new HttpException('Access not allowed', 401);
+			throw new HttpException('Access not allowed', 403);
 		}
 
 		const deleted: Transaction = await this.prisma.transaction.delete({ where: { id: id } });
@@ -147,7 +147,7 @@ export class TransactionsService {
 		}
 
 		if (transaction.user_id !== user_id) {
-			throw new HttpException('Access not allowed', 401);
+			throw new HttpException('Access not allowed', 403);
 		}
 
 		const changed: Transaction = await this.prisma.transaction.update({

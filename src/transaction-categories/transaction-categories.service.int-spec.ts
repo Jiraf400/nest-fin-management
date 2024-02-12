@@ -112,7 +112,7 @@ describe('TransactionCategoriesService', () => {
 
 				await service.removeCategory(createdCategory.id, 123321);
 			} catch (error) {
-				expect(error.status).toBe(401);
+				expect(error.status).toBe(403);
 				expect(error.message).toBe('Access not allowed');
 			}
 		});

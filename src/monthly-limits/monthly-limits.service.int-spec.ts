@@ -114,7 +114,7 @@ describe('MonthlyLimitsService', () => {
 
 				await service.changeLimitAmount(2000, 123, limitFromDB.id);
 			} catch (error) {
-				expect(error.status).toBe(401);
+				expect(error.status).toBe(403);
 				expect(error.message).toBe('Access not allowed');
 			}
 		});
@@ -176,7 +176,7 @@ describe('MonthlyLimitsService', () => {
 
 				await service.deleteMonthLimit(limit.id, 5678);
 			} catch (error) {
-				expect(error.status).toBe(401);
+				expect(error.status).toBe(403);
 				expect(error.message).toBe('Access not allowed');
 			}
 		});
