@@ -1,6 +1,6 @@
 import { HttpException, Injectable } from '@nestjs/common';
 import { Transaction, TransactionCategory, TransactionType, User } from '@prisma/client';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { GetTransactionDTO } from '../dto/transactions-get.dto';
 import { TransactionsMapper } from '../mappers/transactions.mapper';
 
