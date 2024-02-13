@@ -6,18 +6,21 @@ import { UserRegisterDto } from '../auth/dtos/user-register.dto';
 import { MonthlyLimitsService } from '../monthly-limits/monthly-limits.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { TransactionCategoriesService } from '../transaction-categories/transaction-categories.service';
-import { RedisService } from '../utils/cache/redis.service';
 import { MonthlyLimitsNotifications } from '../utils/notifications/monthly-limits.notifications';
 import { GetTransactionsDtoList } from './dto/get-list-transactions.dto';
 import { GetTransactionDTO } from './dto/transactions-get.dto';
 import { TransactionsDto } from './dto/transactions.dto';
 import { TransactionsMapper } from './mappers/transactions.mapper';
+import { TransactionRedisHelper } from './related/transaction-cache.helper';
+import { TransactionFetcher } from './related/transaction.fetcher';
+import { TransactionValidator } from './related/transaction.validator';
 import { TransactionsService } from './transactions.service';
 
 describe('TransactionsService', () => {
 	let service: TransactionsService;
 	let prisma: PrismaService;
 	let authService: AuthService;
+	let validator: TransactionValidator;
 	let trCategoryService: TransactionCategoriesService;
 
 	beforeAll(async () => {
@@ -31,13 +34,16 @@ describe('TransactionsService', () => {
 				TransactionsMapper,
 				MonthlyLimitsService,
 				MonthlyLimitsNotifications,
+				TransactionFetcher,
+				TransactionValidator,
 				{
-					provide: RedisService,
+					provide: TransactionRedisHelper,
 					useValue: {
-						doConnect: jest.fn().mockResolvedValue(null),
-						getValueFromCache: jest.fn().mockResolvedValue(null),
-						setValueToCache: jest.fn().mockResolvedValue(null),
-						deleteValueFromCache: jest.fn().mockResolvedValue(null),
+						setTransactionsToCache: jest.fn().mockResolvedValue(null),
+						getTransactionsFromCache: jest.fn().mockResolvedValue(null),
+						setTransactionsToCacheWithTTL: jest.fn().mockResolvedValue(null),
+						deleteTransactionsFromCache: jest.fn().mockResolvedValue(null),
+						resetAllCachedLists: jest.fn().mockResolvedValue(null),
 					},
 				},
 			],
@@ -47,6 +53,7 @@ describe('TransactionsService', () => {
 		service = moduleRef.get(TransactionsService);
 		authService = moduleRef.get(AuthService);
 		trCategoryService = moduleRef.get(TransactionCategoriesService);
+		validator = moduleRef.get(TransactionValidator);
 		await prisma.cleanDatabase(prisma.user);
 		await prisma.cleanDatabase(prisma.transactionCategory);
 		await prisma.cleanDatabase(prisma.transaction);
@@ -393,12 +400,126 @@ describe('TransactionsService', () => {
 				expect(error.message).toBe('Parameters allowed: day, week, month');
 			}
 		});
+		it('should throw (404) if user is not exists', async () => {
+			try {
+				await service.getTransactionsByTimeRange(634644, 'day');
+			} catch (error) {
+				expect(error.status).toBe(404);
+				expect(error.message).toBe('User not found');
+			}
+		});
+	});
+	describe('getTransactionsByCategory()', () => {
+		it('should return transaction list by category', async () => {
+			const userTemp: UserRegisterDto = {
+				name: 'Clint',
+				email: 'clint@mail.com',
+				password: 'pass1234',
+			};
+
+			const user: User = await authService.register(userTemp);
+
+			const categoryForIncome: TransactionCategory = await trCategoryService.addNewCategory(
+				{ name: 'salary' },
+				user.id,
+			);
+
+			const incomeTemplate: TransactionsDto = {
+				amount: 100,
+				description: 'test 5',
+				category: categoryForIncome.name,
+				type: 'INCOME',
+			};
+
+			const incomeTemplate2: TransactionsDto = {
+				amount: 150,
+				description: 'test 5',
+				category: categoryForIncome.name,
+				type: 'INCOME',
+			};
+
+			await service.addNewTransaction(user.id, incomeTemplate);
+			await service.addNewTransaction(user.id, incomeTemplate2);
+
+			const result: GetTransactionsDtoList = await service.getTransactionsByCategory(
+				user.id,
+				categoryForIncome.name,
+			);
+
+			expect(result.total_incomes).toEqual(250);
+			expect(result.transactions.length).toEqual(2);
+		});
+		it('should throw (404) if category not exists', async () => {
+			try {
+				await service.getTransactionsByCategory(1, 'banana');
+			} catch (error) {
+				expect(error.status).toBe(404);
+				expect(error.message).toBe('No categories found. Please create new category');
+			}
+		});
+		it('should throw (404) if user not exists', async () => {
+			try {
+				await service.getTransactionsByCategory(56423, 'salary');
+			} catch (error) {
+				expect(error.status).toBe(404);
+				expect(error.message).toBe('No categories found. Please create new category');
+			}
+		});
+	});
+	describe('getTransactionsBySearchQuery()', () => {
+		it('should return transaction list by search query', async () => {
+			const userTemp: UserRegisterDto = {
+				name: 'Jonathan',
+				email: 'jonathan@mail.com',
+				password: 'pass1234',
+			};
+
+			const user: User = await authService.register(userTemp);
+
+			const categoryForExpense: TransactionCategory = await trCategoryService.addNewCategory(
+				{ name: 'beauty' },
+				user.id,
+			);
+
+			const expenseTemplate: TransactionsDto = {
+				amount: 150,
+				description: 'apple test',
+				category: categoryForExpense.name,
+				type: 'EXPENSE',
+			};
+
+			const expenseTemplate2: TransactionsDto = {
+				amount: 150,
+				description: 'test 7',
+				category: categoryForExpense.name,
+				type: 'EXPENSE',
+			};
+
+			await service.addNewTransaction(user.id, expenseTemplate);
+			await service.addNewTransaction(user.id, expenseTemplate2);
+
+			const result: GetTransactionsDtoList = await service.getTransactionsBySearchQuery(
+				user.id,
+				'test',
+			);
+
+			expect(result.total_expenses).toEqual(300);
+			expect(result.transactions.length).toEqual(2);
+		});
+		it('should throw (404) if user not exists', async () => {
+			try {
+				await service.getTransactionsBySearchQuery(532124, 'banana');
+			} catch (error) {
+				expect(error.status).toBe(404);
+				expect(error.message).toBe('User not found');
+			}
+		});
 	});
 	describe('validateTransactionTypeOrThrow()', () => {
 		it('should return data if tr type is correct', async () => {
 			const correctType = 'EXPENSE';
 
-			const result = service['validateTransactionTypeOrThrow'](correctType);
+			const result = validator['validateTransactionTypeOrThrow'](correctType);
 
 			expect(result).toEqual('EXPENSE');
 		});
@@ -406,7 +527,7 @@ describe('TransactionsService', () => {
 			try {
 				const incorrectType = 'WATER';
 
-				service['validateTransactionTypeOrThrow'](incorrectType);
+				validator['validateTransactionTypeOrThrow'](incorrectType);
 			} catch (error) {
 				expect(error.status).toBe(400);
 				expect(error.message).toBe('Incorrect transaction type (EXPENSE, INCOME)');
