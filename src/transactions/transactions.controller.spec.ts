@@ -11,6 +11,9 @@ import { GetTransactionsDtoList } from './dto/get-list-transactions.dto';
 import { GetTransactionDTO } from './dto/transactions-get.dto';
 import { TransactionsDto } from './dto/transactions.dto';
 import { TransactionsMapper } from './mappers/transactions.mapper';
+import { TransactionRedisHelper } from './related/transaction-cache.helper';
+import { TransactionFetcher } from './related/transaction.fetcher';
+import { TransactionValidator } from './related/transaction.validator';
 import { TransactionsController } from './transactions.controller';
 import { TransactionsService } from './transactions.service';
 
@@ -29,6 +32,9 @@ describe('TransactionsController', () => {
 				MonthlyLimitsService,
 				TransactionCategoriesService,
 				MonthlyLimitsNotifications,
+				TransactionFetcher,
+				TransactionValidator,
+				TransactionRedisHelper,
 				RedisService,
 			],
 		}).compile();
