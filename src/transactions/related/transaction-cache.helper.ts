@@ -27,9 +27,9 @@ export class TransactionRedisHelper {
 	}
 
 	async resetAllCachedLists(user_id: number, category_id: number) {
-		await this.deleteTransactionsFromCache(`app:${user_id}:timerange:day`);
-		await this.deleteTransactionsFromCache(`app:${user_id}:timerange:week`);
-		await this.deleteTransactionsFromCache(`app:${user_id}:timerange:month`);
+		await this.deleteTransactionsFromCache(`app:${user_id}:timerange:DAY`);
+		await this.deleteTransactionsFromCache(`app:${user_id}:timerange:WEEK`);
+		await this.deleteTransactionsFromCache(`app:${user_id}:timerange:MONTH`);
 
 		await this.deleteTransactionsFromCache(`app:${user_id}:category:${category_id}`);
 	}
