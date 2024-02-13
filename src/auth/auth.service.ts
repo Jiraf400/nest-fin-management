@@ -2,7 +2,6 @@ import { HttpException, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { User as PrismaUser, User } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
-import * as process from 'process';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserLoginDto } from './dtos/user-login.dto';
 import { UserRegisterDto } from './dtos/user-register.dto';
@@ -15,7 +14,7 @@ export class AuthService {
 	) {}
 
 	async register(registerDto: UserRegisterDto) {
-		const duplicate: User | null = await this.prisma.user.findUnique({
+		const duplicate: User = <User>await this.prisma.user.findUnique({
 			where: { email: registerDto.email },
 		});
 
@@ -35,7 +34,7 @@ export class AuthService {
 	}
 
 	async login(loginDto: UserLoginDto): Promise<string> {
-		const candidate: User | null = await this.prisma.user.findUnique({
+		const candidate: User = <User>await this.prisma.user.findUnique({
 			where: { email: loginDto.email },
 		});
 
@@ -63,10 +62,4 @@ export class AuthService {
 			secret: `${process.env.JWT_SECRET}`,
 		});
 	}
-}
-
-export function isEmailValid(email: any): boolean {
-	const expression: RegExp = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
-
-	return expression.test(email);
 }
