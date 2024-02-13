@@ -1,33 +1,25 @@
-import {
-	Body,
-	Controller,
-	Post,
-	Res,
-	UsePipes,
-	ValidationPipe,
-} from '@nestjs/common';
+import { Body, Controller, Post, Res } from '@nestjs/common';
 import { User as PrismaUser } from '@prisma/client';
 import { Response } from 'express';
-import { AuthService, isEmailValid } from './auth.service';
+import { AuthService } from './auth.service';
 import { UserLoginDto } from './dtos/user-login.dto';
 import { UserRegisterDto } from './dtos/user-register.dto';
+import { isEmailValid } from './user/isEmailValid';
 
 @Controller('auth')
-@UsePipes(ValidationPipe)
 export class AuthController {
 	constructor(private readonly authService: AuthService) {}
 
 	@Post('register')
 	async registerNewUser(
 		@Res() res: Response,
-		@Body() registerDto: UserRegisterDto
+		@Body() registerDto: UserRegisterDto,
 	): Promise<Response> {
 		if (!registerDto || !isEmailValid(registerDto.email)) {
 			return res.status(400).json({ message: 'All fields must be filled.' });
 		}
 
-		const createdUser: PrismaUser =
-			await this.authService.register(registerDto);
+		const createdUser: PrismaUser = await this.authService.register(registerDto);
 
 		return res.status(201).json({
 			status: 'OK',
@@ -37,10 +29,7 @@ export class AuthController {
 	}
 
 	@Post('login')
-	async loginUser(
-		@Res() res: Response,
-		@Body() loginDto: UserLoginDto
-	): Promise<Response> {
+	async loginUser(@Res() res: Response, @Body() loginDto: UserLoginDto): Promise<Response> {
 		if (!loginDto || !loginDto.password || !loginDto.email) {
 			return res.status(400).json({ message: 'All fields must be filled.' });
 		}
