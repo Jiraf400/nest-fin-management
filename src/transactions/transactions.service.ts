@@ -1,5 +1,5 @@
 import { HttpException, Injectable } from '@nestjs/common';
-import { Transaction, TransactionCategory, TransactionType, User } from '@prisma/client';
+import { Transaction, User } from '@prisma/client';
 import { MonthlyLimitsService } from '../monthly-limits/monthly-limits.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { TransactionCategoriesService } from '../transaction-categories/transaction-categories.service';
@@ -10,6 +10,8 @@ import { GetTransactionDTO } from './dto/transactions-get.dto';
 import { TransactionsDto } from './dto/transactions.dto';
 import { TransactionsMapper } from './mappers/transactions.mapper';
 import { TransactionRedisHelper } from './related/transaction-cache.helper';
+import { TransactionFetcher } from './related/transaction.fetcher';
+import { TransactionValidator } from './related/transaction.validator';
 
 @Injectable()
 export class TransactionsService {
@@ -19,6 +21,8 @@ export class TransactionsService {
 		private categoriesService: TransactionCategoriesService,
 		private mLimitService: MonthlyLimitsService,
 		private redis: TransactionRedisHelper,
+		private fetcher: TransactionFetcher,
+		private validator: TransactionValidator,
 	) {}
 
 	async addNewTransaction(user_id: number, trDto: TransactionsDto): Promise<Transaction> {
@@ -31,7 +35,7 @@ export class TransactionsService {
 			throw new HttpException('Transaction category not found', 404);
 		}
 
-		const trType: string = this.validateTransactionTypeOrThrow(trDto.type);
+		const trType: string = this.validator.validateTransactionTypeOrThrow(trDto.type);
 
 		const user: User = <User>await this.prisma.user.findUnique({ where: { id: user_id } });
 
@@ -90,7 +94,7 @@ export class TransactionsService {
 				throw new HttpException('Access not allowed', 403);
 			}
 
-			transactionModel = await this.fetchRelatedEntitiesAndMapToModel(transaction);
+			transactionModel = await this.fetcher.fetchRelatedEntitiesAndMapToModel(transaction);
 
 			await this.redis.setTransactionsToCache(
 				`app:${user_id}:${id}`,
@@ -302,37 +306,5 @@ export class TransactionsService {
 		}
 
 		return transactionDtoList;
-	}
-
-	private async fetchRelatedEntitiesAndMapToModel(
-		transaction: Transaction,
-	): Promise<GetTransactionDTO> {
-		const type: TransactionType = <TransactionType>(
-			await this.prisma.transactionType.findUnique({ where: { id: transaction.type_id } })
-		);
-
-		const user: User = <User>(
-			await this.prisma.user.findUnique({ where: { id: transaction.user_id } })
-		);
-
-		const category: TransactionCategory = <TransactionCategory>(
-			await this.prisma.transactionCategory.findUnique({ where: { id: transaction.category_id } })
-		);
-
-		if (!type || !user || !category) {
-			throw new HttpException('Some related entities not found', 404);
-		}
-
-		return this.mapper.mapTransactionToModel(transaction, user, category, type);
-	}
-
-	private validateTransactionTypeOrThrow(type: string): string {
-		type = type.toUpperCase().trim();
-
-		if (type === 'EXPENSE' || type === 'INCOME') {
-			return type;
-		} else {
-			throw new HttpException('Incorrect transaction type (EXPENSE, INCOME)', 400);
-		}
 	}
 }
