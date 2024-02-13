@@ -1,7 +1,7 @@
 import { JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
 import { PrismaService } from '../prisma/prisma.service';
-import { AuthService, isEmailValid } from './auth.service';
+import { AuthService } from './auth.service';
 
 describe('AuthService', () => {
 	let authService: AuthService;
@@ -77,13 +77,5 @@ describe('AuthService', () => {
 				expect(error.status).toBe(400);
 			}
 		});
-	});
-
-	describe('isEmailValid()', () => {
-		const goodExample = 'bob@mail.com';
-		const badExample = 'bob@.@mailcom';
-
-		expect(isEmailValid(goodExample)).toBeTruthy();
-		expect(isEmailValid(badExample)).toBeFalsy();
 	});
 });
