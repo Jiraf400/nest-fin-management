@@ -228,7 +228,10 @@ export class TransactionsService {
 		return transactionDtoList;
 	}
 
-	async getTransactionsByCategory(user_id: number, category: string) {
+	async getTransactionsByCategory(
+		user_id: number,
+		category: string,
+	): Promise<GetTransactionsDtoList> {
 		const categoryId: number = await this.categoriesService.ifCategoryExistsReturnsItsId(
 			category,
 			user_id,
@@ -272,7 +275,10 @@ export class TransactionsService {
 		return transactionDtoList;
 	}
 
-	async getTransactionsBySearchQuery(user_id: number, query: string) {
+	async getTransactionsBySearchQuery(
+		user_id: number,
+		query: string,
+	): Promise<GetTransactionsDtoList> {
 		let transactionDtoList: GetTransactionsDtoList = JSON.parse(
 			<string>await this.redis.getTransactionsFromCache(`app:${user_id}:query:${query}`),
 		);
