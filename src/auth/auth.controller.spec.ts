@@ -1,5 +1,8 @@
+import { ValidationPipe } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
 import { Response } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthController } from './auth.controller';
@@ -10,17 +13,15 @@ import { UserRegisterDto } from './dtos/user-register.dto';
 describe('AuthController', () => {
 	let authController: AuthController;
 	let authService: AuthService;
-	let prisma: PrismaService;
 
 	beforeAll(async () => {
 		const module = await Test.createTestingModule({
 			controllers: [AuthController],
-			providers: [AuthService, PrismaService, JwtService],
+			providers: [AuthService, PrismaService, JwtService, ValidationPipe],
 		}).compile();
 
 		authService = module.get<AuthService>(AuthService);
 		authController = module.get<AuthController>(AuthController);
-		prisma = module.get<PrismaService>(PrismaService);
 	});
 
 	it('should be defined', () => {
@@ -61,24 +62,16 @@ describe('AuthController', () => {
 				}),
 			);
 		});
-		it('should return 400 on checking if all fields filled', async () => {
+		it('should return 400 on checking email accuracy', async () => {
 			const userDto: UserRegisterDto = {
 				name: 'John',
+				email: 'invalid-email',
 				password: 'pass1234',
 			} as UserRegisterDto;
 
-			const mockResponse = {} as unknown as Response;
-			mockResponse.json = jest.fn();
-			mockResponse.status = jest.fn(() => mockResponse).mockReturnThis();
-
-			await authController.registerNewUser(mockResponse, userDto);
-
-			expect(mockResponse.status).toHaveBeenCalledWith(400);
-			expect(mockResponse.json).toHaveBeenCalledWith(
-				expect.objectContaining({
-					message: 'All fields must be filled.',
-				}),
-			);
+			const dtoCheck = plainToInstance(UserRegisterDto, userDto);
+			const errors = await validate(dtoCheck);
+			expect(errors.length).not.toBe(0);
 		});
 	});
 
@@ -106,23 +99,14 @@ describe('AuthController', () => {
 				accessToken: jwtToken,
 			});
 		});
-		it('should return 400 on checking if all fields filled', async () => {
+		it('should return 400 on checking password accuracy', async () => {
 			const userDto: UserLoginDto = {
 				email: 'bobik1@gmail.com',
 			} as UserLoginDto;
 
-			const mockResponse = {} as unknown as Response;
-			mockResponse.json = jest.fn();
-			mockResponse.status = jest.fn(() => mockResponse).mockReturnThis();
-
-			await authController.loginUser(mockResponse, userDto);
-
-			expect(mockResponse.status).toHaveBeenCalledWith(400);
-			expect(mockResponse.json).toHaveBeenCalledWith(
-				expect.objectContaining({
-					message: 'All fields must be filled.',
-				}),
-			);
+			const dtoCheck = plainToInstance(UserLoginDto, userDto);
+			const errors = await validate(dtoCheck);
+			expect(errors.length).not.toBe(0);
 		});
 	});
 });
