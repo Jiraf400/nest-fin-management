@@ -93,7 +93,7 @@ describe('TransactionCategoriesService', () => {
 
 				await service.removeCategory(1500, (userFromDb as User).id);
 			} catch (error) {
-				expect(error.status).toBe(400);
+				expect(error.status).toBe(404);
 				expect(error.message).toBe('No objects found');
 			}
 		});
