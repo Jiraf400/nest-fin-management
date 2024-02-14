@@ -9,8 +9,6 @@ import {
 	Req,
 	Res,
 	UseGuards,
-	UsePipes,
-	ValidationPipe,
 } from '@nestjs/common';
 import { MonthlyLimit } from '@prisma/client';
 import { Request, Response } from 'express';
@@ -19,7 +17,6 @@ import { AuthGuard } from '../auth/guard/auth.guard';
 import { MonthlyLimitDTO } from './dto/monthly-limit.dto';
 import { MonthlyLimitsService } from './monthly-limits.service';
 
-@UsePipes(ValidationPipe)
 @UseGuards(AuthGuard)
 @Controller('limits')
 export class MonthlyLimitsController {
@@ -33,8 +30,8 @@ export class MonthlyLimitsController {
 	): Promise<Response> {
 		const requestUser: UserFromToken = req.body.user;
 
-		if (!requestUser || !limitDto.limit_amount) {
-			return res.status(400).json({ message: 'All fields must be filled.' });
+		if (!requestUser) {
+			return res.status(403).json({ message: 'Cannot verify user info' });
 		}
 
 		const created: MonthlyLimit = await this.mLimitsService.addMonthLimit(limitDto, requestUser.id);
@@ -51,8 +48,12 @@ export class MonthlyLimitsController {
 	): Promise<Response> {
 		const requestUser: UserFromToken = req.body.user;
 
-		if (!requestUser || !limitDto.limit_amount) {
-			return res.status(400).json({ message: 'All fields must be filled.' });
+		if (!requestUser) {
+			return res.status(403).json({ message: 'Cannot verify user info' });
+		}
+
+		if (!limit_id) {
+			return res.status(400).json({ message: 'Cannot verify user info' });
 		}
 
 		const changed: MonthlyLimit = await this.mLimitsService.changeLimitAmount(
@@ -72,12 +73,12 @@ export class MonthlyLimitsController {
 	async removeMonthLimit(
 		@Req() req: Request,
 		@Res() res: Response,
-		@Param('id', ParseIntPipe) limit_id: number,
+		@Param('id', new ParseIntPipe()) limit_id: number,
 	): Promise<Response> {
 		const requestUser: UserFromToken = req.body.user;
 
-		if (!requestUser || !limit_id) {
-			return res.status(400).json({ message: 'All fields must be filled.' });
+		if (!requestUser) {
+			return res.status(403).json({ message: 'Cannot verify user info' });
 		}
 
 		const deleteLimit: MonthlyLimit = await this.mLimitsService.deleteMonthLimit(
