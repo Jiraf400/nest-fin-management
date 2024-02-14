@@ -10,8 +10,6 @@ import {
 	Req,
 	Res,
 	UseGuards,
-	UsePipes,
-	ValidationPipe,
 } from '@nestjs/common';
 import { Transaction, User } from '@prisma/client';
 import { Request, Response } from 'express';
@@ -19,11 +17,11 @@ import { UserFromToken } from 'src/utils/dtos/user-token.dto';
 import { AuthGuard } from '../auth/guard/auth.guard';
 import { CreateCategoryDTO } from '../transaction-categories/dto/create-category.dto';
 import { GetTransactionsDtoList } from './dto/get-list-transactions.dto';
+import { GetTransactionDTO } from './dto/transactions-get.dto';
 import { TransactionsDto } from './dto/transactions.dto';
 import { TransactionsService } from './transactions.service';
 
 @Controller('transactions')
-@UsePipes(ValidationPipe)
 @UseGuards(AuthGuard)
 export class TransactionsController {
 	constructor(private transactionService: TransactionsService) {}
@@ -36,8 +34,8 @@ export class TransactionsController {
 	): Promise<Response> {
 		const requestUser: User = req.body.user;
 
-		if (!requestUser || !trDto) {
-			return res.status(400).json({ message: 'All fields must be filled.' });
+		if (!requestUser) {
+			return res.status(403).json({ message: 'Cannot verify user info' });
 		}
 
 		const created: Transaction = await this.transactionService.addNewTransaction(
@@ -60,10 +58,8 @@ export class TransactionsController {
 	): Promise<Response> {
 		const requestUser: UserFromToken = req.body.user;
 
-		timeRange = timeRange.toUpperCase().trim();
-
 		if (!requestUser) {
-			return res.status(400).json({ message: 'All fields must be filled' });
+			return res.status(403).json({ message: 'Cannot verify user info' });
 		}
 
 		const transactions: GetTransactionsDtoList =
@@ -80,10 +76,8 @@ export class TransactionsController {
 	): Promise<Response> {
 		const requestUser: UserFromToken = req.body.user;
 
-		category = category.toUpperCase().trim();
-
 		if (!requestUser) {
-			return res.status(400).json({ message: 'All fields must be filled' });
+			return res.status(403).json({ message: 'Cannot verify user info' });
 		}
 
 		const transactions: GetTransactionsDtoList =
@@ -101,13 +95,11 @@ export class TransactionsController {
 		const requestUser: UserFromToken = req.body.user;
 
 		if (!requestUser) {
-			return res.status(400).json({ message: 'All fields must be filled' });
+			return res.status(403).json({ message: 'Cannot verify user info' });
 		}
 
-		const transactions = await this.transactionService.getTransactionsBySearchQuery(
-			requestUser.id,
-			query,
-		);
+		const transactions: GetTransactionsDtoList =
+			await this.transactionService.getTransactionsBySearchQuery(requestUser.id, query);
 
 		return res.status(200).json(transactions);
 	}
@@ -116,19 +108,18 @@ export class TransactionsController {
 	async getSingleTransaction(
 		@Req() req: Request,
 		@Res() res: Response,
-		@Param('id', ParseIntPipe) id: number,
+		@Param('id', new ParseIntPipe()) id: number,
 	) {
 		const requestUser: UserFromToken = req.body.user;
 
 		if (!requestUser) {
-			return res.status(400).json({ message: 'All fields must be filled' });
+			return res.status(403).json({ message: 'Cannot verify user info' });
 		}
 
-		if (!id || !isFinite(id)) {
-			return res.status(400).json({ message: 'Id field required.' });
-		}
-
-		const transaction = await this.transactionService.getSingleTransaction(id, requestUser.id);
+		const transaction: GetTransactionDTO = await this.transactionService.getSingleTransaction(
+			id,
+			requestUser.id,
+		);
 
 		return res.status(200).json({ status: 'OK', message: 'Success', body: transaction });
 	}
@@ -138,19 +129,15 @@ export class TransactionsController {
 		@Req() req: Request,
 		@Res() res: Response,
 		@Body() category: CreateCategoryDTO,
-		@Param('id', ParseIntPipe) id: number,
+		@Param('id', new ParseIntPipe()) id: number,
 	) {
 		const requestUser: UserFromToken = req.body.user;
 
 		if (!requestUser) {
-			return res.status(400).json({ message: 'All fields must be filled' });
+			return res.status(403).json({ message: 'Cannot verify user info' });
 		}
 
-		if (!id || !category) {
-			return res.status(400).json({ message: 'All fields must be filled.' });
-		}
-
-		const changed = await this.transactionService.changeTransactionCategory(
+		const changed: Transaction = await this.transactionService.changeTransactionCategory(
 			category.name,
 			id,
 			requestUser.id,
@@ -171,14 +158,13 @@ export class TransactionsController {
 		const requestUser: UserFromToken = req.body.user;
 
 		if (!requestUser) {
-			return res.status(400).json({ message: 'All fields must be filled' });
+			return res.status(403).json({ message: 'Cannot verify user info' });
 		}
 
-		if (!id || !isFinite(id)) {
-			return res.status(400).json({ message: 'Id field required.' });
-		}
-
-		const deleted = await this.transactionService.removeTransaction(id, requestUser.id);
+		const deleted: Transaction = await this.transactionService.removeTransaction(
+			id,
+			requestUser.id,
+		);
 
 		return res.status(200).json({
 			status: 'OK',
