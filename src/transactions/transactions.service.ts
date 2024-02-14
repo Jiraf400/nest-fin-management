@@ -237,6 +237,8 @@ export class TransactionsService {
 			user_id,
 		);
 
+		category = this.categoriesService.formatCategoryName(category);
+
 		if (categoryId === 0) {
 			throw new HttpException('No categories found. Please create new category', 404);
 		}
