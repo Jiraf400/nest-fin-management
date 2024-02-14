@@ -8,14 +8,11 @@ export class TransactionCategoriesService {
 	constructor(private readonly prisma: PrismaService) {}
 
 	async addNewCategory(category: CreateCategoryDTO, user_id: number): Promise<TransactionCategory> {
-		category.name = category.name.toUpperCase().trim();
+		category.name = this.formatCategoryName(category.name);
 
-		const candidateCategoryId: number = await this.ifCategoryExistsReturnsItsId(
-			category.name,
-			user_id,
-		);
+		const candidateId: number = await this.ifCategoryExistsReturnsItsId(category.name, user_id);
 
-		if (candidateCategoryId !== 0) {
+		if (candidateId !== 0) {
 			throw new HttpException('Category already exists', 400);
 		}
 
@@ -34,12 +31,14 @@ export class TransactionCategoriesService {
 	}
 
 	async removeCategory(id: number, user_id: number): Promise<TransactionCategory> {
-		const candidate: TransactionCategory | null = await this.prisma.transactionCategory.findUnique({
-			where: { id: id },
-		});
+		const candidate: TransactionCategory = <TransactionCategory>(
+			await this.prisma.transactionCategory.findUnique({
+				where: { id: id },
+			})
+		);
 
 		if (!candidate) {
-			throw new HttpException('No objects found', 400);
+			throw new HttpException('No objects found', 404);
 		}
 
 		if (candidate.user_id !== user_id) {
@@ -56,14 +55,14 @@ export class TransactionCategoriesService {
 	}
 
 	async ifCategoryExistsReturnsItsId(categoryName: string, user_id: number): Promise<number> {
-		categoryName = categoryName.toUpperCase().trim();
+		categoryName = this.formatCategoryName(categoryName);
 
-		const categories: TransactionCategory[] = await this.getCategoriesByUserId(user_id);
+		const userCategories: TransactionCategory[] = await this.getCategoriesByUserId(user_id);
 
 		let candidateId = 0;
 
-		categories.forEach(function (category) {
-			if (category.name == categoryName) {
+		userCategories.map(category => {
+			if (category.name === categoryName) {
 				candidateId = category.id;
 			}
 		});
@@ -71,9 +70,13 @@ export class TransactionCategoriesService {
 		return candidateId;
 	}
 
-	getCategoriesByUserId(user_id: number): Promise<TransactionCategory[]> {
-		return this.prisma.transactionCategory.findMany({
+	async getCategoriesByUserId(user_id: number): Promise<TransactionCategory[]> {
+		return await this.prisma.transactionCategory.findMany({
 			where: { user_id: user_id },
 		});
+	}
+
+	formatCategoryName(categoryName: string): string {
+		return categoryName.toUpperCase().trim();
 	}
 }
