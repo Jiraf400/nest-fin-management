@@ -1,6 +1,9 @@
+import { ArgumentMetadata, BadRequestException, ParseIntPipe } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
 import { MonthlyLimit } from '@prisma/client';
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
 import { Request, Response } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
 import { MonthlyLimitsNotifications } from '../utils/notifications/monthly-limits.notifications';
@@ -64,7 +67,7 @@ describe('MonthlyLimitsController', () => {
 				body: monthlyLimit,
 			});
 		});
-		it('should return 400 because of unfilled fields', async () => {
+		it('should return 403 if user not provided', async () => {
 			const mockRequest = {
 				body: {},
 			} as Request;
@@ -75,10 +78,19 @@ describe('MonthlyLimitsController', () => {
 
 			await controller.addMonthLimit(mockRequest, mockResponse, {} as MonthlyLimitDTO);
 
-			expect(mockResponse.status).toHaveBeenCalledWith(400);
+			expect(mockResponse.status).toHaveBeenCalledWith(403);
 			expect(mockResponse.json).toHaveBeenCalledWith({
-				message: 'All fields must be filled.',
+				message: 'Cannot verify user info',
 			});
+		});
+		it('should return 400 if dto is invalid', async () => {
+			const limit: MonthlyLimitDTO = {
+				limit_amount: -100,
+			};
+
+			const dtoCheck = plainToInstance(MonthlyLimitDTO, limit);
+			const errors = await validate(dtoCheck);
+			expect(errors.length).not.toBe(0);
 		});
 	});
 	describe('changeMonthLimitAmount()', () => {
@@ -119,7 +131,7 @@ describe('MonthlyLimitsController', () => {
 				body: monthlyLimit,
 			});
 		});
-		it('should return 400 because ofsss unfilled fields', async () => {
+		it('should return 403 if user not provided', async () => {
 			const mockRequest = {
 				body: {},
 			} as Request;
@@ -130,10 +142,35 @@ describe('MonthlyLimitsController', () => {
 
 			await controller.changeMonthLimitAmount(mockRequest, mockResponse, 1, {} as MonthlyLimitDTO);
 
-			expect(mockResponse.status).toHaveBeenCalledWith(400);
+			expect(mockResponse.status).toHaveBeenCalledWith(403);
 			expect(mockResponse.json).toHaveBeenCalledWith({
-				message: 'All fields must be filled.',
+				message: 'Cannot verify user info',
 			});
+		});
+		it('should return 400 if dto is invalid', async () => {
+			const limit: MonthlyLimitDTO = {} as MonthlyLimitDTO;
+
+			const dtoCheck = plainToInstance(MonthlyLimitDTO, limit);
+			const errors = await validate(dtoCheck);
+			expect(errors.length).not.toBe(0);
+		});
+	});
+	describe('ParseIntPipe()', () => {
+		it('should return 400 if limit_id is not type of string', async () => {
+			try {
+				const pipe = new ParseIntPipe();
+
+				const metadata: ArgumentMetadata = {
+					type: 'param',
+					metatype: Number,
+					data: 'id',
+				};
+
+				await pipe.transform('abc', metadata);
+			} catch (error: any) {
+				expect(error instanceof BadRequestException).toBe(true);
+				expect(error.message).toBe('Validation failed (numeric string is expected)');
+			}
 		});
 	});
 	describe('removeMonthLimit()', () => {
@@ -170,7 +207,7 @@ describe('MonthlyLimitsController', () => {
 				body: monthlyLimit,
 			});
 		});
-		it('should return 400 because of unfilled fields', async () => {
+		it('should return 403 if user not provided', async () => {
 			const mockRequest = {
 				body: {},
 			} as Request;
@@ -181,9 +218,9 @@ describe('MonthlyLimitsController', () => {
 
 			await controller.removeMonthLimit(mockRequest, mockResponse, 1);
 
-			expect(mockResponse.status).toHaveBeenCalledWith(400);
+			expect(mockResponse.status).toHaveBeenCalledWith(403);
 			expect(mockResponse.json).toHaveBeenCalledWith({
-				message: 'All fields must be filled.',
+				message: 'Cannot verify user info',
 			});
 		});
 	});
