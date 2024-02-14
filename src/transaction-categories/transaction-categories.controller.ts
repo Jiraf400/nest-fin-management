@@ -8,8 +8,6 @@ import {
 	Req,
 	Res,
 	UseGuards,
-	UsePipes,
-	ValidationPipe,
 } from '@nestjs/common';
 import { TransactionCategory } from '@prisma/client';
 import { Request, Response } from 'express';
@@ -18,7 +16,6 @@ import { AuthGuard } from '../auth/guard/auth.guard';
 import { CreateCategoryDTO } from './dto/create-category.dto';
 import { TransactionCategoriesService } from './transaction-categories.service';
 
-@UsePipes(ValidationPipe)
 @UseGuards(AuthGuard)
 @Controller('categories')
 export class TransactionCategoriesController {
@@ -32,11 +29,14 @@ export class TransactionCategoriesController {
 	): Promise<Response> {
 		const requestUser: UserFromToken = req.body.user;
 
-		if (!categoryDTO?.name) {
-			return res.status(400).json({ message: 'Category not provided' });
+		if (!requestUser) {
+			return res.status(403).json({ message: 'Cannot verify user info' });
 		}
 
-		const createdCategory: TransactionCategory = await this.categoryService.addNewCategory(categoryDTO, requestUser.id);
+		const createdCategory: TransactionCategory = await this.categoryService.addNewCategory(
+			categoryDTO,
+			requestUser.id,
+		);
 
 		return res.status(201).json({
 			status: 'OK',
@@ -49,15 +49,18 @@ export class TransactionCategoriesController {
 	async removeCategory(
 		@Req() req: Request,
 		@Res() res: Response,
-		@Param('id', ParseIntPipe) id: number,
+		@Param('id', new ParseIntPipe()) id: number,
 	): Promise<Response> {
 		const requestUser: UserFromToken = req.body.user;
 
-		if (!id || !isFinite(id)) {
-			return res.status(400).json({ message: 'Id field required.' });
+		if (!requestUser) {
+			return res.status(403).json({ message: 'Cannot verify user info' });
 		}
 
-		const removedCategory: TransactionCategory = await this.categoryService.removeCategory(id, requestUser.id);
+		const removedCategory: TransactionCategory = await this.categoryService.removeCategory(
+			id,
+			requestUser.id,
+		);
 
 		return res.status(200).json({
 			status: 'OK',
