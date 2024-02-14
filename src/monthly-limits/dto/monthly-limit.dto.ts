@@ -1,7 +1,8 @@
-import { IsInt, IsNotEmpty } from 'class-validator';
+import { IsNotEmpty, IsPositive } from 'class-validator';
 
 export class MonthlyLimitDTO {
 	@IsNotEmpty({ message: 'limit_amount field is required' })
-	@IsInt()
+	@IsPositive()
+	@IsNotEmpty()
 	limit_amount: number;
 }
