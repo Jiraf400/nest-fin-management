@@ -1,5 +1,8 @@
+import { ArgumentMetadata, BadRequestException, ParseIntPipe } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
 import { Request, Response } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
 import { TransactionCategoryDto } from './dto/category.dto';
@@ -26,7 +29,7 @@ describe('TransactionCategoriesController', () => {
 	});
 
 	describe('createNewCategory()', () => {
-		it('should successfully create new transaction category', async () => {
+		it('should return 201 and created transaction category body', async () => {
 			const createdCategory: TransactionCategoryDto = {
 				id: 1,
 				name: 'PETS',
@@ -60,13 +63,9 @@ describe('TransactionCategoriesController', () => {
 				body: createdCategory,
 			});
 		});
-		it('should throw on empty body', async () => {
+		it('should return 403 if user not specified', async () => {
 			const mockRequest = {
-				body: {
-					user: {
-						id: 1,
-					},
-				},
+				body: {},
 			} as Request;
 
 			const mockResponse = {} as Response;
@@ -75,17 +74,24 @@ describe('TransactionCategoriesController', () => {
 
 			await controller.createNewCategory(mockRequest, mockResponse, {} as CreateCategoryDTO);
 
-			expect(mockResponse.status).toHaveBeenCalledWith(400);
-			expect(mockResponse.json).toHaveBeenCalledWith(
-				expect.objectContaining({
-					message: 'Category not provided',
-				}),
-			);
+			expect(mockResponse.status).toHaveBeenCalledWith(403);
+			expect(mockResponse.json).toHaveBeenCalledWith({
+				message: 'Cannot verify user info',
+			});
+		});
+		it('should return 400 if dto is empty or invalid', async () => {
+			const category: CreateCategoryDTO = {
+				name: 'a',
+			};
+
+			const dtoCheck = plainToInstance(CreateCategoryDTO, category);
+			const errors = await validate(dtoCheck);
+			expect(errors.length).not.toBe(0);
 		});
 	});
 
 	describe('removeCategory()', () => {
-		it('should successfully remove transaction category', async () => {
+		it('should return 200 and remove transaction category id', async () => {
 			const removedCategory: TransactionCategoryDto = {
 				id: 1,
 				name: 'PETS',
@@ -99,7 +105,6 @@ describe('TransactionCategoriesController', () => {
 					user: {
 						id: 1,
 					},
-					name: 'blah blah blah',
 				},
 			} as Request;
 
@@ -115,27 +120,39 @@ describe('TransactionCategoriesController', () => {
 				message: `Transaction category removed with id: ${removedCategory.id}`,
 			});
 		});
-		it('should throw on empty id or not integer id', async () => {
+		it('should return 403 if user not specified', async () => {
 			const mockRequest = {
-				body: {
-					user: {
-						id: 1,
-					},
-				},
+				body: {},
 			} as Request;
 
 			const mockResponse = {} as Response;
 			mockResponse.json = jest.fn();
 			mockResponse.status = jest.fn(() => mockResponse).mockReturnThis();
 
-			await controller.removeCategory(mockRequest, mockResponse, 'abc' as unknown as number);
+			await controller.removeCategory(mockRequest, mockResponse, 1);
 
-			expect(mockResponse.status).toHaveBeenCalledWith(400);
-			expect(mockResponse.json).toHaveBeenCalledWith(
-				expect.objectContaining({
-					message: 'Id field required.',
-				}),
-			);
+			expect(mockResponse.status).toHaveBeenCalledWith(403);
+			expect(mockResponse.json).toHaveBeenCalledWith({
+				message: 'Cannot verify user info',
+			});
+		});
+		describe('ParseIntPipe()', () => {
+			it('should return 400 if limit_id is not type of string', async () => {
+				try {
+					const pipe = new ParseIntPipe();
+
+					const metadata: ArgumentMetadata = {
+						type: 'param',
+						metatype: Number,
+						data: 'id',
+					};
+
+					await pipe.transform('abc', metadata);
+				} catch (error: any) {
+					expect(error instanceof BadRequestException).toBe(true);
+					expect(error.message).toBe('Validation failed (numeric string is expected)');
+				}
+			});
 		});
 	});
 });
