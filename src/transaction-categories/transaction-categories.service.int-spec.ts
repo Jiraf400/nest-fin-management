@@ -27,7 +27,6 @@ describe('TransactionCategoriesService', () => {
 	it('should be defined', () => {
 		expect(service).toBeDefined();
 	});
-
 	describe('addNewCategory()', () => {
 		it('should create new category', async () => {
 			const categoryDTO: CreateCategoryDTO = {
@@ -67,7 +66,6 @@ describe('TransactionCategoriesService', () => {
 			}
 		});
 	});
-
 	describe('removeCategory()', () => {
 		it('should remove category', async () => {
 			const userFromDb: User = <User>await prisma.user.findUnique({
@@ -117,7 +115,6 @@ describe('TransactionCategoriesService', () => {
 			}
 		});
 	});
-
 	describe('ifCategoryExistsReturnsItsId()', () => {
 		it('should return existing category id', async () => {
 			const userFromDb: User = <User>await prisma.user.findUnique({
