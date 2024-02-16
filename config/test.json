@@ -1,3 +1,3 @@
 {
-  "databaseUrl": "postgresql://postgres:postgres@localhost:5431/finance_management?schema=public"
+	"databaseUrl": "postgresql://postgres:postgres@localhost:5431/finance_management?schema=public"
 }
